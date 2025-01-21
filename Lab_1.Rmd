@@ -7,5 +7,66 @@ date: "2025-01-21"
 ```{r}
 install.packages("medicaldata")
 library(medicaldata)
+library(tidyverse)
+opt <- opt
+
+data <- opt |> mutate(across(where(is.factor), str_trim)) |>
+  filter(Birth.outcome == "Live birth") |>
+  select(PID, GA.at.outcome, Birthweight)
+head(data)
 ```
+
+```{r}
+load("nepal.anthro.rdata")
+head(nepal.anthro)
+
+# keep only first observation for each PID, keep id, age, sex, wt, ht
+nepal.anthro <- nepal.anthro |>
+  group_by(id) |>
+  slice(1) |>
+  ungroup() %>% 
+  select(id, sex, wt, ht, age) %>% 
+  filter(!is.na(age) & !is.na(ht) & !is.na(wt))
+```
+
+Scatterplot of weight against age
+
+```{r}
+library(splines)
+ggplot(nepal.anthro, aes(x = age, y = wt)) +
+  geom_jitter(size = 1) +
+  geom_smooth(method = "glm", formula = y ~ ns(x, df = 3), se = FALSE)+
+  labs(title = "Scatterplot of Weight Against Age",
+       x = "Age (months)",
+       y = "Weight (kg)") +
+  theme_bw()
+```
+
+Description of Relationship:
+This scatterplot shows a strong positive correlation between age and weight. The average birth weight for a newborn (1 month old) is 5 kilograms, while at 30 months it is 11 kilograms and at 60 months it is 13 kilograms. Based on the smoothing spline, the relationship is close to linear but not quite linear.  
+
+```{r}
+
+ggplot(nepal.anthro, aes(x = age, y = wt)) +
+  geom_jitter(size = 1, aes(color = as.factor(sex))) +
+  geom_smooth(method = "glm", formula = y ~ ns(x, df = 3), se = FALSE, aes(color = as.factor(sex)))+
+  labs(title = "Scatterplot of Weight Against Age",
+       x = "Age (months)",
+       y = "Weight (kg)") +
+  theme_bw() + 
+  scale_color_manual(breaks = c(1, 2),
+                     values = c("darkgray", "#920045"), labels = c("Male","Female")) + 
+  labs(color='Sex') 
+  theme(legend.title = element_text('Sex'))
+# change text in legend to male and female
+
+```
+
+The relationship between age and weight is positive for both males and females, but there is a stronger association for males as the slope is steeper. At 1 one month, the average weight for males is 5 kg and at 2 months, the average weight for females is 5.5 kg. At 30 months, the average weight for males is 11 kg while for females it is slightly less than 11 kg. By about 58 months, the average weight deviates more between the sexes, and the average weight for males is about 14 kg while it is about 13 kg for females. 
+
+Methods
+
+These scatterplots were created to demonstrate the relationship between age in months and weight in kilograms of Nepalese children. These scatterplots used a smoothing spline to show the relationship between age and weight. The first scatterplot shows the relationship between age and weight for all children, while the second scatterplot shows the relationship between age and weight separated by sex.
+
+
 
