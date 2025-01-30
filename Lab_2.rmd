@@ -1,0 +1,663 @@
+---
+title: "140.653 Lab 02: Cross validation"
+subtitle: | 
+  | Methods in Biostatistics 3 (140.653) 
+  | Jason Haw, Elizabeth Colantuoni and Shuai Li
+author: "Jason Haw, Elizabeth Colantuoni and Shuai Li"
+output: 
+  rmdformats::robobook:
+      number_sections: yes
+      highlight: haddock
+header-includes:
+- \usepackage[T1]{fontenc}
+- \usepackage{fancyhdr}
+- \usepackage{amsmath}
+- \usepackage{float}
+- \floatplacement{figure}{H}
+mainfont: Arial
+---
+
+<style>
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+.book .book-body .page-inner section.normal h1 {
+  font-size: 24px;
+  font-family: Arial, sans-serif;
+}
+
+.book .book-body .page-inner section.normal h1.title {
+  font-size: 2em;
+  margin-top: 0;
+  color: #024873;
+}
+
+.book .book-body .page-inner section.normal h1.subtitle {
+    font-size: 1em;
+    font-weight: 400;
+    margin-top: -15px;
+    color: #024873;  
+}
+
+
+.book .book-body .page-inner section.normal h2, 
+.book .book-body .page-inner section.normal h3, 
+.book .book-body .page-inner section.normal h4 {
+  font-size: 20px;
+  font-family: Arial, sans-serif;  
+}
+
+</style>
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=5)       # To override default scientific notation for large numbers
+options(digits=3)
+```
+
+At the end of this lab, you should be able to:
+
+1. Utilize the data visualization techniques learned from the first lab to conduct basic exploration of the data and inform candidate models to describe the relationship between two variables, typically of the form $E[Y|X] = f(X)$ where $X$ is a continuous variable and $f(\cdot)$ is some function, e.g. linear, quadratic, linear spline, natural spline
+2. Calculate the mean squared error (MSE) of candidate models to describe the best fit model for the observed data
+3. Employ a cross validation approach and calculate the corresponding cross-validated MSE to describe the best fit model for the observed data
+
+<br>
+
+# Sample data: Periodontal disease treatment and the risk of preterm birth
+
+For this lab, we will again use the publicly available data set from [Micalowicz *et al* (2006)](https://www-nejm-org.proxy1.library.jhu.edu/doi/full/10.1056/nejmoa062249) published in the *New England Journal of Medicine*, which was a multi-center randomized trial that examined whether timing of periodontal disease treatment (before 21 weeks gestation as treatment and after delivery as control) affects the likelihood of pre-term birth, defined as less than 37 weeks gestational age.
+
+This is a longitudinal data set of 823 women who were 13-16 weeks gestational age at randomization, followed by five monthly visits. There are 171 variables corresponding to the exposure, outcome, and covariates collected throughout the entire study period.
+
+The data set is currently set up in wide format, meaning each row represents one study participant, and the covariates and outcome data collected at follow-up visits are set up as separate columns. Full details on the data set, as well as the complete data dictionary are available [here](https://www.causeweb.org/tshs/obstetrics-and-periodontal-therapy/).
+
+**In the first lab, we discovered that there was a strong, positive (almost) linear relationship between birth weight (in grams) and gestational age at the time of delivery (in days).  In this lab, we will develop and identify a model, from among a limited set of candidate models, that "best" represents the the main trends we observe in the data. The criterion for what is "best" in this lab will be based on a statistic called the "mean squared error" which we will estimate via a procedure called cross-validation.**
+
+We restrict the data again to women whose pregnancies resulted to live births and were observed within the study period.  This leaves us with 793 observations.
+
+The data set is available on the Comprehensive R Archive Network (CRAN) as part of the `medicaldata` package, stored as the `opt` data frame once the package is loaded in library. The variables we will be working with in this lab are:
+
++ `PID`: Patient unique identifier (ID)
++ `GA.at.outcome`: Gestational age in days at birth
++ `Birthweight`: Birth weight in grams
++ `Birth.outcome`: Outcome of pregnancy with four levels
+  + Elective abortion
+  + Live birth
+  + Lost of FU (follow-up)
+  + Non-live birth (i.e., stillbirth or spontaneous abortion)
+  + *Note that the factor values have lagging spaces in the end, so we will need to add an additional data processing step using the `str_trim` function from the `stringr` package (part of `tidyverse`) and replace the affected columns using `mutate`*
+
+```{r loadsampledata, warning = FALSE, message = FALSE}
+# Only install.packages once when installing for the first time
+# install.packages(medicaldata)    
+library(medicaldata)
+# The data set is stored in opt, then we call it into the environment
+opt <- opt
+
+# install.packages(tidyverse)
+library(tidyverse)
+# Select the variables needed for the analysis
+  # PID = patient ID
+  # GA.at.outcome = gestational age in days
+  # Birthweight = birth weight in g
+# Restrict data to live births only (Birth.outcome == "Live birth")
+# But clean factor values first using str_trim and apply changes using mutate
+data <- opt |> mutate(across(where(is.factor), str_trim)) |> 
+  filter(Birth.outcome == "Live birth") |>
+  select(PID, GA.at.outcome, Birthweight)
+head(data)
+```
+
+<br>
+
+# Data Exploration
+
+## Basic scatterplot
+
+Recall from the end of the first lab that we created a scatterplot that looks something like this:
+
+```{r title_legendpos, warning = FALSE, message = FALSE}
+# Create custom theme
+custom_theme <- theme(
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  axis.text = element_text(size = 12),
+  axis.title = element_text(size = 14, face = "bold"),
+  axis.line = element_line(size = 0.5)
+)
+
+basic_scatter <- ggplot(data = data, aes(x = GA.at.outcome, y = Birthweight)) +
+  geom_jitter(size = 1) + 
+  scale_x_continuous(limits = c(147, 315), 
+                     breaks = seq(147, 315, 28),
+                     labels = seq(147, 315, 28)/7) +
+  scale_y_continuous(breaks = seq(0, 5000, 500),
+                     labels = function(x) format(x, big.mark = ",")) +
+  # Add the title
+  labs(x = "Gestational age at birth (in weeks)",
+       y = "Birth weight at birth (in grams)") +
+  custom_theme +
+  # Add the legend position and title font settings
+  theme(legend.position = c(0.1, 0.9),
+        legend.title = element_blank(),
+        legend.key = element_blank(),
+        legend.text = element_text(size = 11),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+basic_scatter
+```
+
+## Candidate models
+
+We can see that there is a strong, positive relationship between birth weight and gestational age at birth, which led us to conclude in the first lab that the agreement in the definitions of the two variables in defining pre-term births was very good. In this lab, we will attempt to describe the relationship between these two variables using a simple regression model. We will consider three candidate models where $Y$ denotes birth weight and $X$ is gestational age:
+
+1. Simple linear model, i.e. $E[Y] = \beta_0 + \beta_1 X + \epsilon$
+2. Simple linear model on the log-transformed $Y$, i.e. $E[\log(Y)] = \beta_0 + \beta_1 X + \epsilon$
+3. Model with $X$ modeled as a natural spline with three degrees of freedom
+
+We will first evaluate the fit of the candidate models by visual inspection; specifically, we will overlay the modeled mean birth weight as a function of gestational age on top of the scatterplot and visually identify the "best" fit.
+
+First, we run the models and store them accordingly:
+
+```{r model_candidates, warning = FALSE, message = FALSE}
+# Simple linear model
+model1_simple <- lm(Birthweight ~ GA.at.outcome, data = data)
+
+# Simple linear model on the log-transformed Y
+data <- data |> mutate(logBirthweight = log(Birthweight))
+model2_simplelog <- lm(logBirthweight ~ GA.at.outcome, data = data)
+
+# X modeled as a natural spline with three degrees of freedom
+# install.packages("splines")
+library(splines)
+model3_ns <- lm(Birthweight ~ ns(GA.at.outcome, 3), data = data)
+
+# Display model summaries for each
+summary(model1_simple)
+summary(model2_simplelog)
+summary(model3_ns)
+```
+
+Now, we overlay the fitted lines (i.e. the estimated mean birth weight for each gestational age) on the scatterplot:
+
+```{r model_candidatefit, warning = FALSE, message = FALSE}
+# Predict the values
+# Note that for model 2, we have to exponentiate the predicted values
+data <- data |>
+  mutate(model1_simple_pred = predict(model1_simple),
+         model2_simplelog_pred = exp(predict(model2_simplelog)),
+         model3_ns_pred = predict(model3_ns))
+
+# Add lines for each model
+model_cand_plot <- basic_scatter +
+  geom_line(data = data, aes(color = "1", y = model1_simple_pred,
+                             x = GA.at.outcome), size = 1.5) +
+  geom_line(data = data, aes(color = "2", y = model2_simplelog_pred,
+                             x = GA.at.outcome), size = 1.5) +
+  geom_line(data = data, aes(color = "3", y = model3_ns_pred,
+                             x = GA.at.outcome), size = 1.5) +
+  # Add the color legend specifications
+  scale_color_manual(breaks = c("1", "2", "3"),
+                     values = c("#024873", "#920045", "#67733C"),
+                     labels = c("linear",
+                                "log-transformed linear",
+                                "natural spline with 3 df")) +
+  # Add theme customizations
+  theme(legend.position = c(0.2, 0.9),
+      legend.title = element_blank(),
+      legend.text = element_text(size = 10),
+      legend.key = element_blank())
+
+model_cand_plot
+```
+
+<br>
+
+# Choosing the best candidate model visually
+
+We can choose the best fitting model by looking at how well the fitted lines represent the trends in the observed data. In this example, it may seem like this is not an apparent choice, given that the three models have different ways of describing the relationship between birth weight and gestational age at birth before 37 weeks.
+
+<br>
+
+# Choosing the best candidate model using mean squared error
+
+We can also determine the best candidate model by calculating the model's mean squared error (MSE). The MSE is the mean of the squared model residuals, and we might think of a model with the smallest MSE as one that predicts the observed data best (given that on average this model yields the smallest difference in the predicted and observed birth weights).
+
+Calculating the MSE for each of the candidate models:
+
+```{r mse1, warning = FALSE, message = FALSE}
+# Simple linear model MSE
+model1_simple_mse <- mean(model1_simple$residuals^2)
+# Alternatively, the MSE may also be calculated as
+# mean((data$Birthweight - model1_simple$fitted.values)^2)
+
+# Log-transformed model MSE
+# Because the outcome is log transformed,
+# we have to use the exponentiated form to calculate the residuals
+model2_simplelog_mse <- mean((data$Birthweight - data$model2_simplelog_pred)^2)
+
+# Natural spline with 3 df MSE
+model3_ns_mse <- mean(model3_ns$residuals^2)
+# Alternatively, the MSE may also be calculated as
+# mean((data$Birthweight - model3_ns$fitted.values)^2)
+
+# Put them all in a kable
+model_mse <- data.frame(
+  Model = c("Linear", "Log-transformed linear", "Natural spline with 3 df"),
+  MSE = c(model1_simple_mse, model2_simplelog_mse, model3_ns_mse))
+
+# install.packages("knitr")
+library(knitr)
+kable(model_mse, "html", align = "lc")
+```
+
+Based on the MSE, the best fit model is the natural spline with three degrees of freedom as it had the smallest MSE (`r model3_ns_mse`).
+
+It is important to note that the MSEs above are an **optimistic** measure of model fit, as we are using the same data to fit the model ("training" data set) and evalaute the model's accuracy ("test" data set).
+
+Therefore, we need to use another approach: cross validation.
+
+<br>
+
+# Cross validation
+
+Cross validation simply means that we split our data into *n* groups, or folds, then use each fold as the "test" data set and use the remaining folds altogether as the "training" data set. We repeat the process *n* times, such that each fold has had the opportunity to be the "test" data set.
+
+To compute the cross validated MSE, we calculate the MSE by stacking the *n* fold test data set and compute the mean of the squared residuals.
+
+Often, *n* = 5 or 10 is sufficient. In this lab, we will do *n* = 10 or a 10-fold cross validation.
+
+The workflow is as follows:
+
+1. Randomly split the observations into 10 groups. When doing any kind of randomization, it is best to set the seed to ensure we arrive at the same result every time we run the code. We use the base R `sample` and `cut` functions to achieve this.
+2. Repeat for each of the 10 folds:
+  * Fit the models with the training data, i.e. all the folds except the fold of interest
+  * Calculate the predicted values for the test data, i.e. the fold of interest
+  * We will use `for` loops for this
+3. Stack the folds and calculate the corresponding MSE.
+
+## Splitting the observations
+
+We first randomly split the observations:
+
+```{r cv1, warning = FALSE, message = FALSE}
+# Set seed
+set.seed(653)
+
+# Store the row numbers in a vector that will be used for the split
+rows <- 1:nrow(data)
+
+# Shuffle the rows (sampling without replacement)
+shuffled_rows <- sample(rows, replace = FALSE)
+head(shuffled_rows, n = 20)
+
+# Declare the number of folds
+B <- 10
+
+# Divide the rows into 10 folds and code each row according to which fold they belong
+folds <- cut(rows, breaks = B, labels = FALSE)
+head(folds, n = 20)
+```
+
+This means that for the first fold, this will contain the following row numbers:
+`r paste0(head(shuffled_rows, n = 20))`...
+
+## Running the cross validation procedure
+
+Before using the loop to stack the folds, we first demonstrate what is happening with the first fold.
+
+```{r cv2, warning = FALSE, message = FALSE}
+test_rows <- shuffled_rows[which(folds == 1)]
+train_rows <- shuffled_rows[which(folds != 1)]
+
+# Call the relevant rows in the data
+test_data <- data[test_rows, ]
+train_data <- data[train_rows, ]
+
+# Fit the models and calculate predicted values
+# Simple linear model
+model1_simple_train <- lm(Birthweight ~ GA.at.outcome, data = train_data)
+test_data <- test_data |> 
+  mutate(model1_simple_pred = predict(model1_simple_train, newdata = test_data))
+
+# Simple linear model on the log-transformed Y
+train_data <- train_data |> mutate(logBirthweight = log(Birthweight))
+model2_simplelog_train <- lm(logBirthweight ~ GA.at.outcome, data = train_data)
+test_data <- test_data |>
+  mutate(model2_simplelog_pred = 
+           exp(predict(model2_simplelog_train, newdata = test_data)))
+
+# X modeled as a natural spline with three degrees of freedom
+model3_ns_train <- lm(Birthweight ~ ns(GA.at.outcome, 3), data = train_data)
+test_data <- test_data |>
+  mutate(model3_ns_pred = predict(model3_ns_train, newdata = test_data))
+
+head(test_data[,c(1,5:7)], n = 20)
+```
+
+We see that the test data contains the row numbers we had specified earlier for the first fold, and the model predicted values come from the training data set, which are all the folds except the first fold.
+
+Now running a loop to run all 10 folds:
+
+```{r cv3, warning = FALSE, message = FALSE}
+# Create a blank data set to store predicted values from cross validation
+pred_birthweight <- NULL
+
+# Conduct the cross-validation procedure
+for (i in 1:B) {
+  
+  # Divide the data set into training and test data set and specify the row numbers
+  test_rows <- shuffled_rows[which(folds == i)]
+  train_rows <- shuffled_rows[which(folds != i)]
+  
+  # Call the relevant rows in the data
+  test_data <- data[test_rows, ]
+  train_data <- data[train_rows, ]
+  
+  # Fit the models and calculate predicted values
+  # Simple linear model
+  model1_simple_train <- lm(Birthweight ~ GA.at.outcome, data = train_data)
+  test_data <- test_data |> 
+    mutate(model1_simple_pred = predict(model1_simple_train, newdata = test_data))
+
+  # Simple linear model on the log-transformed Y
+  train_data <- train_data |> mutate(logBirthweight = log(Birthweight))
+  model2_simplelog_train <- lm(logBirthweight ~ GA.at.outcome, data = train_data)
+  test_data <- test_data |>
+    mutate(model2_simplelog_pred = 
+             exp(predict(model2_simplelog_train, newdata = test_data)))
+
+  # X modeled as a natural spline with three degrees of freedom
+  model3_ns_train <- lm(Birthweight ~ ns(GA.at.outcome, 3), data = train_data)
+  test_data <- test_data |>
+    mutate(model3_ns_pred = predict(model3_ns_train, newdata = test_data))
+
+  # Stack the data altogether
+  pred_birthweight <- rbind(pred_birthweight, test_data)
+}
+```
+
+## Plotting the cross validated predicted values
+
+We then overlay the cross validated predicted values on the scatterplot:
+
+```{r cvplot, warning = FALSE, message = FALSE}
+# Add lines for each model
+model_cand_cvplot <- basic_scatter +
+  geom_line(data = pred_birthweight, aes(color = "1", y = model1_simple_pred,
+                                         x = GA.at.outcome), size = 1.5) +
+  geom_line(data = pred_birthweight, aes(color = "2", y = model2_simplelog_pred,
+                                         x = GA.at.outcome), size = 1.5) +
+  geom_line(data = pred_birthweight, aes(color = "3", y = model3_ns_pred,
+                                         x = GA.at.outcome), size = 1.5) +
+  # Add the color legend specifications
+  scale_color_manual(breaks = c("1", "2", "3"),
+                     values = c("#024873", "#920045", "#67733C"),
+                     labels = c("linear",
+                                "log-transformed linear",
+                                "natural spline with 3 df")) +
+  # Add theme customizations
+  theme(legend.position = c(0.2, 0.9),
+      legend.title = element_blank(),
+      legend.text = element_text(size = 10),
+      legend.key = element_blank())
+
+model_cand_cvplot
+```
+
+We can also choose to overlay the non-cross validated predicted values on the same plot:
+
+```{r cvplot2, warning = FALSE, message = FALSE}
+# We will add a new aes, linetype, that will distinguish
+# non-cross validated and cross validated predicted values
+# Play around with transparency and thickness of lines to distinguish them
+model_cand_cvplot2 <- basic_scatter +
+  geom_line(data = data, aes(linetype = "1",
+                             color = "1", y = model1_simple_pred,
+                             x = GA.at.outcome), size = 1, alpha = 0.5) +
+  geom_line(data = data, aes(linetype = "1",
+                             color = "2", y = model2_simplelog_pred,
+                             x = GA.at.outcome), size = 1, alpha = 0.5) +
+  geom_line(data = data, aes(linetype = "1",
+                             color = "3", y = model3_ns_pred,
+                             x = GA.at.outcome), size = 1, alpha = 0.5) +
+  geom_line(data = pred_birthweight, aes(linetype = "2",
+                                         color = "1", y = model1_simple_pred,
+                                         x = GA.at.outcome), size = 1.5) +
+  geom_line(data = pred_birthweight, aes(linetype = "2",
+                                         color = "2", y = model2_simplelog_pred,
+                                         x = GA.at.outcome), size = 1.5) +
+  geom_line(data = pred_birthweight, aes(linetype = "2",
+                                         color = "3", y = model3_ns_pred,
+                                         x = GA.at.outcome), size = 1.5) +
+  # Add the color legend specifications
+  scale_color_manual(breaks = c("1", "2", "3"),
+                     values = c("#024873", "#920045", "#67733C"),
+                     labels = c("linear",
+                                "log-transformed linear",
+                                "natural spline with 3 df")) +
+  # Add the linetype legend specifications
+  scale_linetype_manual(breaks = c("1", "2"),
+                        values = c("solid", "dotted"),
+                        labels = c("non-cross validated", "cross-validated")) +
+  # Add theme customizations
+  theme(legend.position = c(0.2, 0.8),
+      legend.title = element_blank(),
+      legend.text = element_text(size = 10),
+      legend.key = element_blank())
+
+model_cand_cvplot2
+```
+We see that in this case, the non-cross validated and cross-validated predicted values are very similar, except on the lowest and highest values of gestational age at birth, where there are minor differences.
+
+## Calculating the cross validated MSE
+
+We now calculate the cross validated MSE and compare them to the non-cross validated MSE
+
+```{r cvmse, warning = FALSE, message = FALSE}
+# Simple linear model MSE
+model1_simple_cvmse <- mean((pred_birthweight$Birthweight - 
+                                  pred_birthweight$model1_simple_pred)^2)
+
+# Log-transformed model MSE
+model2_simplelog_cvmse <- mean((pred_birthweight$Birthweight - 
+                                  pred_birthweight$model2_simplelog_pred)^2)
+
+# Natural spline with 3 df MSE
+model3_ns_cvmse <- mean((pred_birthweight$Birthweight - 
+                                  pred_birthweight$model3_ns_pred)^2)
+
+# Append the cross validated MSE to the model_mse data frame
+model_mse <- cbind(model_mse, 
+                   c(model1_simple_cvmse, model2_simplelog_cvmse, model3_ns_cvmse))
+
+kable(model_mse, "html", align = "lcc",
+      col.names = c("Model", "Non-cross validated MSE", "Cross validated MSE"))
+```
+
+We notice that across all three models, the cross validated MSE is higher than the non-cross validated MSE. We also see that in either cross validated or non-cross validated MSE, it is the natural spline function with 3 degrees of freedom that provides the best fit to the observed relationship between birth weight and gestational age at birth.
+
+<br>
+
+# Sample Writeup
+
+We can summarize the steps we have taken and the results as follows:
+
+*This analysis evaluated three regression models to represent the relationship between birth weight and gestational age at birth, using the smallest mean squared error as the basis of selecting the best fitting model. The three models were: a simple linear relationship for the mean birth weight and gestational age, a simple linear relationship for the mean log-transformed birth weight and gestational age, and a natural spline function with three degrees of freedom describing the mean birth weights and gestational age. Both non-cross validated and 10-fold cross validated mean squared errors were calculated.*
+
+*The 10-fold cross validation procedure started with assigning observations into 10 roughly equal sized subsets.  Then separately for each subset, the candidate models were fit to the data leaving out the subset and the model fits were applied to predict the outcome for the observations within the subset. Lastly, the predictions were appended to form a set of predictions for all observations. The mean squared error (MSE), the average squared difference between the observed and predicted value for each observation, was computed for each candidate model.*
+
+*As shown from the table above, among our three candidate models, the best fitting model, based on the lowest cross validated MSE (`r model3_ns_cvmse`), is the natural spline function with 3 degrees of freedom. This selection is visually supported from the scatterplot displaying the predicted values from the candidate models overlaid on the observed data.*
+
+
+<br>
+
+# In-Class Exercise
+
+Working on your own or within groups,
+
+The dataset utilized in this exercise is derived from the Nepal Anthropometry study. It is available in the "Online Library" under the "Datasets" section as NepalAnthro.rdata. After filtering for complete records on age, height, and weight, as well as selecting children with data for all five visits, a total of 135 children remain.
+
+For this analysis, we focus exclusively on the data from each child's first visit. A pre-processed version of the dataset, Lab2_exercise.RData, is provided along with the accompanying code below. You may load the pre-processed data directly for downstream analysis.
+
+```{r data_process, warning = FALSE, message = FALSE}
+
+load('nepal.anthro.rdata')
+# Complete cases
+nepal_cc <- nepal.anthro |> arrange(id, num) |> group_by(id) |>
+  select(id, age, ht, wt, sex, arm, fuvisit) |> 
+  filter(!is.na(age) & !is.na(ht) & !is.na(wt)) |>
+  ungroup()
+
+# select children with all five visits
+summarized_data <- nepal_cc %>%
+  group_by(id) %>%
+  summarise(n = n()) %>%
+  filter(n==5)
+
+# select children by their id and take the baseline visit
+data <- nepal_cc %>%
+  filter(id %in% summarized_data$id) %>%
+  filter(fuvisit==0)
+
+#save(data,file='Lab2_exercise.RData')
+```
+
+
+1. Using the pre-processed data set ("Lab2_exercise.RData"), plot average arm circumference against age using a natural spline function with increasing degrees of freedom for each candidate model (from 1 to 3 degrees of freedom).
+
+*Comment: Usually when conducting parameter tuning, we will visit as many possible parameters (in this case, degrees of freedom) as possible, like trying the models from df=1 to df=10 or even more. In this exercise, to save time, we only ask you to iterate the analysis from df=1 to df=3.*
+
+
+```{r}
+#read in data
+load('Lab2_exercise.RData')
+```
+
+
+```{r q1_plot, warning = FALSE, message = FALSE}
+# Plot average arm circumference against age and use the custom theme from the label
+plot_arm_age <- ggplot(data = data, aes(x = age, y = arm)) +
+  geom_jitter(size = 1.5, alpha = 0.5) +
+  labs(x = "Age at baseline (in months)",
+       y = "Arm circumference at baseline (in cm)",
+       color = "Degrees of freedom") +
+  scale_x_continuous(breaks = seq(0, 80, 10)) +
+  scale_y_continuous(limit = c(0, 20), breaks = seq(0, 20, 5)) +
+  # Natural spine with increasing degrees of freedom
+  geom_smooth(aes(color = "1"),
+    method = "glm", formula = y ~ ns(x, df = 1), se = FALSE, linewidth = 1) +
+  geom_smooth(aes(color = "2"),
+    method = "glm", formula = y ~ ns(x, df = 2), se = FALSE, linewidth = 1) +
+  geom_smooth(aes(color = "3"),
+    method = "glm", formula = y ~ ns(x, df = 3), se = FALSE, linewidth = 1) +
+  # Add the color legend specifications
+    scale_color_manual(breaks = c("1", "2", "3"),
+                       values = c("#E69F00", "#56B4E9", "#009E73")) +
+  theme(panel.background = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 10, face = "bold"),
+    axis.line = element_line(linewidth = 0.5)) +
+  theme(legend.position = c(0.8, 0.3),
+      legend.title = element_text(size = 10, face = "bold"),
+      legend.text = element_text(size = 10),
+      legend.key = element_blank())
+plot_arm_age
+```
+
+2. Implement a 10-fold cross validation procedure to obtain the cross validated MSE for each candidate model.
+
+```{r}
+# Create a blank data set to store predicted values from cross validation
+pred_AC <- NULL
+
+# Conduct the cross-validation procedure
+for (i in 1:B) {
+  
+  # Divide the data set into training and test data set and specify the row numbers
+  test_rows <- shuffled_rows[which(folds == i)]
+  train_rows <- shuffled_rows[which(folds != i)]
+  
+  # Call the relevant rows in the data
+  test_data <- data[test_rows, ]
+  train_data <- data[train_rows, ]
+  
+  # Fit the models and calculate predicted values
+  # Simple linear model
+  model1_simple_train <- lm(arm ~ age, data = train_data)
+  test_data <- test_data |> 
+    mutate(model1_simple_pred = predict(model1_simple_train, newdata = test_data))
+
+  # Simple linear model on the log-transformed Y
+  train_data <- train_data |> mutate(logarm = log(arm))
+  model2_simplelog_train <- lm(logarm ~ age, data = train_data)
+  test_data <- test_data |>
+    mutate(model2_simplelog_pred = 
+             exp(predict(model2_simplelog_train, newdata = test_data)))
+
+  # X modeled as a natural spline with three degrees of freedom
+  model3_ns_train <- lm(arm ~ ns(age, 3), data = train_data)
+  test_data <- test_data |>
+    mutate(model3_ns_pred = predict(model3_ns_train, newdata = test_data))
+
+  # Stack the data altogether
+  pred_AC <- rbind(pred_AC, test_data)
+}
+```
+
+MSE Calculation
+
+```{r}
+# Simple linear model MSE
+model1_simple_cvmse <- mean((pred_AC$arm - 
+                                  pred_AC$model1_simple_pred)^2)
+
+# Log-transformed model MSE
+model2_simplelog_cvmse <- mean((pred_AC$arm - 
+                                  pred_AC$model2_simplelog_pred)^2)
+
+# Natural spline with 3 df MSE
+model3_ns_cvmse <- mean((pred_AC$arm - 
+                                  pred_AC$model3_ns_pred)^2)
+
+# Append the cross validated MSE to the model_mse data frame
+model_mse <- cbind(
+                   c(model1_simple_cvmse, model2_simplelog_cvmse, model3_ns_cvmse))
+library(knitr)
+kable(model_mse, "html", align = "lcc",
+      col.names = c("Model", "Cross validated MSE"))
+```
+
+
+
+3. Based on the 10-fold cross validated mean squared error, how many degrees of freedom is appropriate to describe the relationship between average arm circumference and age?
+
+4. Create a publication-quality figure with the optimal degrees of freedom that you choose. 
+
+```{r}
+ggplot(data = data, aes(x = age, y = arm)) +
+  geom_jitter(size = 1.5, alpha = 0.5) +
+  labs(x = "Age at baseline (in months)",
+       y = "Arm circumference at baseline (in cm)") +
+  scale_x_continuous(breaks = seq(0, 80, 10)) +
+  scale_y_continuous(limit = c(0, 20), breaks = seq(0, 20, 5)) +
+  # Natural spine with 2 degrees of freedom
+  geom_line(data = pred_AC, aes(x = age, y = model2_simplelog_pred), 
+            linewidth = 2, alpha = 0.5, color = "#56B4E9") + 
+  # Add the color legend specifications
+    scale_color_manual(breaks = c("3"),
+                       values = c("#009E73")) +
+  theme(panel.background = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 10, face = "bold"),
+    axis.line = element_line(linewidth = 0.5)) +
+  theme(legend.position = c(0.8, 0.3),
+      legend.title = element_text(size = 10, face = "bold"),
+      legend.text = element_text(size = 10),
+      legend.key = element_blank())
+```
+
