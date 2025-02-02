@@ -1,0 +1,45 @@
+---
+title: "Homework_1"
+output: html_document
+date: "2025-02-02"
+---
+
+### I. Interpreting Simple Linear Regression Coefficients 
+
+Clean data to remove missing observations with missing data and select the first visit for each child.  
+
+```{r}
+load("nepal.anthro.rdata")
+nepal_anthro_clean <- nepal.anthro %>% 
+  filter(num == 1) %>% 
+  filter(!is.na(age) & !is.na(ht) & !is.na(wt))
+head(nepal_anthro_clean)
+```
+
+### 1.  
+
+```{r}
+ggplot(nepal_anthro_clean, aes(x = age, y = wt)) +
+  geom_jitter(size = 1, aes(color = as.factor(sex))) +
+  scale_color_manual(breaks = c(1, 2), values = c("orange", "blue"), labels = c("Male", "Female")) +
+  labs(color='Sex') 
+  
+```
+
+
+
+
+```{r}
+load("nepal.anthro.rdata")
+
+## Complete cases and select first visit
+nepal_cc <- nepal.anthro |> arrange(id, num) |> group_by(id) |>
+  filter(row_number() == 1L) |>
+  select(id, age, ht, wt, sex) |> 
+  filter(!is.na(age) & !is.na(ht) & !is.na(wt)) |>
+  ungroup()
+
+head(nepal_cc, 5)
+```
+
+
