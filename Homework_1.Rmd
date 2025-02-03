@@ -242,6 +242,132 @@ ggplot(nepal_anthro_spline2, aes(x = age, y = wt)) +
 
 I think the cubic spline is most consistent with the observed data because it captures the steeper rate of increase in weight from 0 to 6 months and the curvature of the data in the older ages from around 50 to 60 months, when it appears that the rate of increase in weight may be slowing. The linear spline does not capture the slowing of the rate of weight gain in the older ages, and the natural cubic spline with 3 degrees of freedom does not capture well the greater rate of weight increase in 0 to 6 month old children. To make this decision, I examined my figure and determined which curve best fit the data points. 
 
+### e. Hat matrix  
+
+```{r}
+X <- model.matrix(natural_spline_reg)
+hat_matrix <- X %*% solve(t(X) %*% X) %*% t(X)
+hat_matrix
+
+# Choose 3 children, ages 12, 24, and 36 months
+
+child_12 <- nepal_anthro_clean %>% 
+  filter(age == 12) %>% 
+  head(1)
+
+child_24 <- nepal_anthro_clean %>% 
+  filter(age == 24) %>% 
+  head(1) 
+
+child_36 <- nepal_anthro_clean %>% 
+  filter(age == 36) %>% 
+  head(1)
+
+child_12_hat <- hat_matrix[row.names(hat_matrix) == 376]
+child_24_hat <- hat_matrix[row.names(hat_matrix) == 221]
+child_36_hat <- hat_matrix[row.names(hat_matrix) == 71]
+
+nepal_anthro_clean$wt %*% child_12_hat
+```
+### III. Selecting Among Competing Models Using Cross-validated Prediction Error  
+
+### 1. Randomly split the observations into 10 categories  
+### 2. For each df value, obtain the total cross-validated prediction error by regressing weight on ns(age, df), df=1,..,8, leaving out 1/10th of the observations and summing the squared prediction errors for the left out values across the 10 “leave-out” iterations.  
+
+```{r}
+set.seed(25)
+
+# Store the row numbers in a vector that will be used for the split
+rows <- 1:nrow(nepal_anthro_clean)
+
+# Sample the rows
+shuffled_rows <- sample(rows, replace = FALSE)
+
+# 10 folds
+f <- 10
+
+# Divide the rows into 10 folds and code each row according to which fold they belong
+folds <- cut(rows, breaks = f, labels = FALSE)
+
+# Create a blank data set to store predicted values from cross validation
+pred_weight <- NULL
+
+# Conduct the cross-validation procedure
+for (i in 1:f) {
+  
+  # Divide the data set into training and test data set and specify the row numbers
+  test_rows <- shuffled_rows[which(folds == i)]
+  train_rows <- shuffled_rows[which(folds != i)]
+  
+  # Call the relevant rows in the data
+  test_data <- nepal_anthro_clean[test_rows, ]
+  train_data <- nepal_anthro_clean[train_rows, ]
+  
+  # Fit the models and calculate predicted values
+  # 1 degree of freedom
+  model1_train <- lm(wt ~ ns(age, 1), data = train_data)
+  test_data <- test_data |> mutate(model1_pred = predict(model1_train, newdata = test_data))
+  # 2 degrees of freedom
+  model2_train <- lm(wt ~ ns(age, 2), data = train_data)
+  test_data <- test_data |> mutate(model2_pred = predict(model2_train, newdata = test_data))
+  # 3 degrees of freedom
+  model3_train <- lm(wt ~ ns(age, 3), data = train_data)
+  test_data <- test_data |> mutate(model3_pred = predict(model3_train, newdata = test_data))
+  # 4 degrees of freedom
+  model4_train <- lm(wt ~ ns(age, 4), data = train_data)
+  test_data <- test_data |> mutate(model4_pred = predict(model4_train, newdata = test_data))
+  # 5 degrees of freedom
+  model5_train <- lm(wt ~ ns(age, 5), data = train_data)
+  test_data <- test_data |> mutate(model5_pred = predict(model5_train, newdata = test_data))
+  # 6 degrees of freedom
+  model6_train <- lm(wt ~ ns(age, 6), data = train_data)
+  test_data <- test_data |> mutate(model6_pred = predict(model6_train, newdata = test_data))
+  # 7 degrees of freedom
+  model7_train <- lm(wt ~ ns(age, 7), data = train_data)
+  test_data <- test_data |> mutate(model7_pred = predict(model7_train, newdata = test_data))
+  # 8 degrees of freedom
+  model8_train <- lm(wt ~ ns(age, 8), data = train_data)
+  test_data <- test_data |> mutate(model8_pred = predict(model8_train, newdata = test_data))
+
+  # Stack the data altogether
+  pred_weight <- rbind(pred_weight, test_data)
+}
+
+# Calculate cross-validated MSE
+model1_cvpe <- mean((pred_weight$wt - pred_weight$model1_pred)^2)
+model2_cvpe <- mean((pred_weight$wt - pred_weight$model2_pred)^2)
+model3_cvpe <- mean((pred_weight$wt - pred_weight$model3_pred)^2)
+model4_cvpe <- mean((pred_weight$wt - pred_weight$model4_pred)^2)
+model5_cvpe <- mean((pred_weight$wt - pred_weight$model5_pred)^2)
+model6_cvpe <- mean((pred_weight$wt - pred_weight$model6_pred)^2)
+model7_cvpe <- mean((pred_weight$wt - pred_weight$model7_pred)^2)
+model8_cvpe <- mean((pred_weight$wt - pred_weight$model8_pred)^2)
+
+# Append the cross validated MSE to the model_mse data frame
+model_pe <- 
+  data.frame(df = seq(1,8,1),
+             cv_prediction_error = c(model1_cvpe, model2_cvpe, model3_cvpe, model4_cvpe, model5_cvpe, model6_cvpe, model7_cvpe, model8_cvpe))
+
+library(knitr)
+kable(model_pe, "html", align = "lc",
+      col.names = c("Degrees of freedom", "Cross validated prediction error"))
+```
+### 3. Plot the total cross-validated prediction error against the degrees of freedom to see which of the df values results in the best predictions of data, not also used to fit the model.  
+
+```{r}
+ggplot(model_pe, aes(x = df, y = cv_prediction_error)) +
+  geom_point(color = "blue") +
+  geom_line(color = "blue") +
+  labs(title = "Cross-validated Prediction Error vs. Degrees of Freedom",
+       x = "Degrees of Freedom",
+       y = "Cross-validated Prediction Error") +
+  theme_bw()
+model_pe
+```
+
+
+
+
 ```{r}
 load("nepal.anthro.rdata")
 
