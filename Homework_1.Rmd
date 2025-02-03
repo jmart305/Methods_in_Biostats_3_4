@@ -85,6 +85,8 @@ by one year” rather than “slope”.
 
 ### 4.  
 
+## add back in natural spline to this plot
+
 ```{r}
 library(stringr)
 ggplot(nepal_anthro_clean, aes(x = age, y = wt)) +
@@ -131,16 +133,13 @@ summary(sp)
 ### c.  Plot the raw weight against age data; add the fitted values from this regression.  
 
 ```{r}
-ggplot(nepal_anthro_clean, aes(x = age, y = wt)) +
+ggplot(nepal_anthro_spline, aes(x = age, y = wt)) +
   geom_jitter(size = 1, color = "blue") +
   labs(color='Sex', title = str_wrap("Raw Weight vs. Age of Nepali Children and Fitted Values from Linear Spline Regression Line", width = 70)) + 
   xlab("Age at Baseline (months)") + 
   ylab("Weight at Baseline (kg)") +
- # geom_abline(slope = coef(slr)[["age"]], intercept = coef(slr)[["(Intercept)"]], color = "red") +
-  theme_bw() +
-  geom_jitter(size = 1, data = nepal_anthro_spline, aes(x = age, y = linear_spline_reg$fitted.values), color = "red")
-
-#linear_spline_reg$fitted.values
+  geom_line(aes(x = age, y = linear_spline_reg$fitted.values),color="red") +
+  theme_bw()
 ```
 
 ### d. Using simple language free of statistical jargon, write a sentence describing the model you fit.  
@@ -161,11 +160,87 @@ Among children under 6 months of age, the difference in weight comparing childre
 
 ### f. Comment in a few sentences on the evidence from this analysis for or against a linear growth curve
 
-The evidence from this analysis suggests that a linear growth curve is not appropriate for describing the relationship between weight and age in Nepali children. The coefficients for age_sp6 and age_sp12 are not statistically significant, and the confidence intervals for these coefficients include zero. This suggests that the rate of change in weight is not constant across the age intervals 0-6, 6-12, and 12-60 months.
 
 
 
 
+### 2. Cubic Splines  
+
+### a. Create variables  
+
+```{r}
+nepal_anthro_spline2 <- nepal_anthro_spline %>% 
+  mutate(age2 = (age - 6)^2) %>%
+  mutate(age3 = (age - 6)^3) %>% 
+  mutate(age_csp1 = ifelse((age - 6) > 0, (age - 6)^3,0))     
+```
+
+### b. Regress weight on age_c, age2, age3 and age_csp1.  
+
+```{r}
+cubic_spline_reg <- lm(wt ~ age_c + age2 + age3 + age_csp1, data = nepal_anthro_spline2)
+summary(cubic_spline_reg)
+```
+### c. Plot the weight data with the fitted values from this “cubic regression spline” added along with the fitted values from the linear spline.
+
+```{r}
+ggplot(nepal_anthro_spline2, aes(x = age, y = wt)) +
+  geom_jitter(size = 1, color = "black") +
+  labs(color='Sex', title = str_wrap("Raw Weight vs. Age of Nepali Children with Fitted Values from Linear Spline and Cubic Spline Regression Lines", width = 70)) + 
+  xlab("Age at Baseline (months)") + 
+  ylab("Weight at Baseline (kg)") +
+  geom_line(aes(x = age, y = linear_spline_reg$fitted.values,color="1")) + 
+  geom_line(aes(x = age, y = cubic_spline_reg$fitted.values,color="2")) + 
+  scale_color_manual(breaks = c("1", "2"),
+                       values = c("red", "blue"),
+                       labels = c("Linear Spline",
+                                  "Cubic Spline")) +
+  theme_bw() +
+  theme(legend.position = c(.2, .8),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 10),
+          legend.key = element_blank())
+```
+
+### d. Contrast your estimated curves using linear and cubic splines.  
+
+The linear spline with knots at 6 and 12 months shows a steeper slope from 0-6 months and a flatter slop from 6-12 months and 12-60 months. The cubic spline is similar to the linear spline but at approximately age 50 months, it begins to curve to a flatter slope, reflecting the potential decrease in rate of weight growth for the Nepali children at that age. Therefore, the cubic spline adds more flexibility to the model and helps visualize how the data can be modeled non-linearly.  
+
+### 3. Natural Cubic Splines  
+
+### b. Regress weight on the natural spline ns(age,df=3).  
+
+```{r}
+natural_spline_reg <- lm(wt ~ ns(age, df = 3), data = nepal_anthro_spline2)
+summary(natural_spline_reg)
+```
+
+### c. Plot the weight data as above in 2c. Add the fitted values from this “natural cubic spline” along with the fitted values from the linear spline and cubic regression spline.  
+
+```{r}
+ggplot(nepal_anthro_spline2, aes(x = age, y = wt)) +
+  geom_jitter(size = 1, color = "black") +
+  labs(color='Sex', title = str_wrap("Raw Weight vs. Age of Nepali Children with Fitted Values from Linear Spline and Cubic Spline Regression Lines", width = 70)) + 
+  xlab("Age at Baseline (months)") + 
+  ylab("Weight at Baseline (kg)") +
+  geom_line(aes(x = age, y = linear_spline_reg$fitted.values,color="1")) + 
+  geom_line(aes(x = age, y = cubic_spline_reg$fitted.values,color="2")) + 
+ #geom_smooth(method = "glm", formula = y ~ ns(x, df = 3), se = FALSE) +
+  geom_line(aes(x = age, y = natural_spline_reg$fitted.values,color="3")) +
+  scale_color_manual(breaks = c("1", "2", "3"),
+                       values = c("red", "blue", "green4"),
+                       labels = c("Linear Spline",
+                                  "Cubic Spline", "Natural Cubic Spline with df = 3")) +
+  theme_bw() +
+  theme(legend.position = c(.22, .8),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 10),
+          legend.key = element_blank())
+```
+
+### d. Contrast your estimated curves. Which curve do you think is most consistent with the observed data? What factors are you using to make this decision?  
+
+I think the cubic spline is most consistent with the observed data because it captures the steeper rate of increase in weight from 0 to 6 months and the curvature of the data in the older ages from around 50 to 60 months, when it appears that the rate of increase in weight may be slowing. The linear spline does not capture the slowing of the rate of weight gain in the older ages, and the natural cubic spline with 3 degrees of freedom does not capture well the greater rate of weight increase in 0 to 6 month old children. To make this decision, I examined my figure and determined which curve best fit the data points. 
 
 ```{r}
 load("nepal.anthro.rdata")
