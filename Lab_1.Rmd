@@ -58,8 +58,6 @@ ggplot(nepal.anthro, aes(x = age, y = wt)) +
                      values = c("darkgray", "#920045"), labels = c("Male","Female")) + 
   labs(color='Sex') 
   theme(legend.title = element_text('Sex'))
-# change text in legend to male and female
-
 ```
 
 The relationship between age and weight is positive for both males and females, but there is a stronger association for males as the slope is steeper. At 1 one month, the average weight for males is 5 kg and at 2 months, the average weight for females is 5.5 kg. At 30 months, the average weight for males is 11 kg while for females it is slightly less than 11 kg. By about 58 months, the average weight deviates more between the sexes, and the average weight for males is about 14 kg while it is about 13 kg for females. 
