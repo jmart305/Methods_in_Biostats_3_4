@@ -334,14 +334,14 @@ for (i in 1:f) {
 }
 
 # Calculate cross-validated MSE
-model1_cvpe <- mean((pred_weight$wt - pred_weight$model1_pred)^2)
-model2_cvpe <- mean((pred_weight$wt - pred_weight$model2_pred)^2)
-model3_cvpe <- mean((pred_weight$wt - pred_weight$model3_pred)^2)
-model4_cvpe <- mean((pred_weight$wt - pred_weight$model4_pred)^2)
-model5_cvpe <- mean((pred_weight$wt - pred_weight$model5_pred)^2)
-model6_cvpe <- mean((pred_weight$wt - pred_weight$model6_pred)^2)
-model7_cvpe <- mean((pred_weight$wt - pred_weight$model7_pred)^2)
-model8_cvpe <- mean((pred_weight$wt - pred_weight$model8_pred)^2)
+model1_cvpe <- sum((pred_weight$wt - pred_weight$model1_pred)^2)
+model2_cvpe <- sum((pred_weight$wt - pred_weight$model2_pred)^2)
+model3_cvpe <- sum((pred_weight$wt - pred_weight$model3_pred)^2)
+model4_cvpe <- sum((pred_weight$wt - pred_weight$model4_pred)^2)
+model5_cvpe <- sum((pred_weight$wt - pred_weight$model5_pred)^2)
+model6_cvpe <- sum((pred_weight$wt - pred_weight$model6_pred)^2)
+model7_cvpe <- sum((pred_weight$wt - pred_weight$model7_pred)^2)
+model8_cvpe <- sum((pred_weight$wt - pred_weight$model8_pred)^2)
 
 # Append the cross validated MSE to the model_mse data frame
 model_pe <- 
@@ -358,14 +358,56 @@ kable(model_pe, "html", align = "lc",
 ggplot(model_pe, aes(x = df, y = cv_prediction_error)) +
   geom_point(color = "blue") +
   geom_line(color = "blue") +
-  labs(title = "Cross-validated Prediction Error vs. Degrees of Freedom",
+  labs(title = "Cross-Validated Prediction Error vs. Degrees of Freedom",
        x = "Degrees of Freedom",
-       y = "Cross-validated Prediction Error") +
+       y = "Cross-Validated Prediction Error (sum of squared errors)") +
   theme_bw()
-model_pe
 ```
 
+### 4. Compare the cross-validated prediction error to the non-CV prediction error for each df where the latter uses the same data to fit the model as assess its prediction error  
 
+```{r}
+# fit models with whole data set
+
+model_1_noncv <- lm(wt ~ ns(age, 1), data = nepal_anthro_clean)
+model_2_noncv <- lm(wt ~ ns(age, 2), data = nepal_anthro_clean)
+model_3_noncv <- lm(wt ~ ns(age, 3), data = nepal_anthro_clean)
+model_4_noncv <- lm(wt ~ ns(age, 4), data = nepal_anthro_clean)
+model_5_noncv <- lm(wt ~ ns(age, 5), data = nepal_anthro_clean)
+model_6_noncv <- lm(wt ~ ns(age, 6), data = nepal_anthro_clean)
+model_7_noncv <- lm(wt ~ ns(age, 7), data = nepal_anthro_clean)
+model_8_noncv <- lm(wt ~ ns(age, 8), data = nepal_anthro_clean)
+
+# create predictions
+
+pred_1 <- predict(model_1_noncv, newdata = nepal_anthro_clean)
+pred_2 <- predict(model_2_noncv, newdata = nepal_anthro_clean)
+pred_3 <- predict(model_3_noncv, newdata = nepal_anthro_clean)
+pred_4 <- predict(model_4_noncv, newdata = nepal_anthro_clean)
+pred_5 <- predict(model_5_noncv, newdata = nepal_anthro_clean)
+pred_6 <- predict(model_6_noncv, newdata = nepal_anthro_clean)
+pred_7 <- predict(model_7_noncv, newdata = nepal_anthro_clean)
+pred_8 <- predict(model_8_noncv, newdata = nepal_anthro_clean)
+
+# compute prediction errors (sum of sqared errors)
+
+model1_pe <- sum((pred_weight$wt - pred_1)^2)
+model2_pe <- sum((pred_weight$wt - pred_2)^2)
+model3_pe <- sum((pred_weight$wt - pred_3)^2)
+model4_pe <- sum((pred_weight$wt - pred_4)^2)
+model5_pe <- sum((pred_weight$wt - pred_5)^2)
+model6_pe <- sum((pred_weight$wt - pred_6)^2)
+model7_pe <- sum((pred_weight$wt - pred_7)^2)
+model8_pe <- sum((pred_weight$wt - pred_8)^2)
+```
+
+```{r}
+model_1_noncv <- lm(wt ~ ns(age, 1), data = train_data)
+
+p <- predict(model1_train, newdata = train_data)
+sum((train_data$wt - p)^2)
+
+```
 
 
 ```{r}
