@@ -1,0 +1,114 @@
+---
+title: "Lab_3"
+output: html_document
+date: "2025-02-04"
+---
+
+```{r}
+load("nepal.anthro.rdata")
+
+data1 <- nepal.anthro |> 
+  select(c(1:16)) |> 
+  filter(num == 1) |> 
+  filter(!is.na(age) & !is.na(arm)) |>
+  arrange(age)
+```
+
+```{r}
+# Set seed for reproducibility
+set.seed(653)
+
+# Simulate the scenarios (arm.A, arm.B, arm.C)
+data1 <- data1 |>
+  mutate(arm.A = 7.8 + 0.03*sex + 0.07*ht + rnorm(nrow(data1), 0, 0.93),
+         arm.B = 7.8 + 0.035*age + 0.03*sex + 0.07*ht + rnorm(nrow(data1), 0, 0.93),
+         arm.C = 7.8 + 0.05*age - 0.025*(age-6)*(age > 6) + 0.03*sex + 0.07*ht + 
+           rnorm(nrow(data1), 0, 0.93))
+```
+
+
+1. arm.A
+
+
+```{r}
+# Obtain residuals R(Y|Z) and R(X|Z)
+data1 <- data1 |>
+  mutate(resid.arm2a = lm(arm.A ~ ht + sex, data = data1)$residuals,
+         resid.age2a = lm(age ~ ht + sex, data = data1)$residuals)
+
+# Run the model of R(Y|Z) on R(X|Z)
+resid.model2 <- lm(resid.arm2a ~ resid.age2a, data = data1)
+summary(resid.model2)
+
+mr2 <- lm(arm.A ~ age + ht + sex, data = data1)
+summary(mr2)
+```
+
+```{r}
+library(ggplot2)
+avplot2 <- ggplot(data = data1,
+                  aes(x = resid.age2a, y = resid.arm2a)) +
+  geom_jitter(alpha = 0.5) +
+  geom_smooth(aes(y = predict(resid.model2)), method = "lm", formula = y ~ x,
+              linewidth = 1, color = "#024873", se = FALSE) +
+  labs(x = "Residuals of age on height, weight, age",
+       y = "Residuals of arm circumference on height, weight, age",
+       title = "Adjusted variable plot for arm circumference on age \n adjusting for height and age")
+avplot2
+```
+
+2. arm.B  
+
+```{r}
+# Obtain residuals R(Y|Z) and R(X|Z)
+data1 <- data1 |>
+  mutate(resid.arm2b = lm(arm.B ~ ht + sex, data = data1)$residuals,
+         resid.age2b = lm(age ~ ht + sex, data = data1)$residuals)
+
+# Run the model of R(Y|Z) on R(X|Z)
+resid.model2b <- lm(resid.arm2b ~ resid.age2b, data = data1)
+summary(resid.model2b)
+
+mr2b <- lm(arm.B ~ age + ht + sex, data = data1)
+summary(mr2b)
+```
+
+```{r}
+avplot2 <- ggplot(data = data1,
+                  aes(x = resid.age2b, y = resid.arm2b)) +
+  geom_jitter(alpha = 0.5) +
+  geom_smooth(aes(y = predict(resid.model2b)), method = "lm", formula = y ~ x,
+              linewidth = 1, color = "#024873", se = FALSE) +
+  labs(x = "Residuals of age on height, weight, age",
+       y = "Residuals of arm circumference on height, weight, age",
+       title = "Adjusted variable plot for arm circumference on age \n adjusting for height and age")
+avplot2
+```
+
+3. arm.C  
+
+```{r}
+# Obtain residuals R(Y|Z) and R(X|Z)
+data1 <- data1 |>
+  mutate(resid.arm2c = lm(arm.C ~ ht + sex, data = data1)$residuals,
+         resid.age2c = lm(age ~ ht + sex, data = data1)$residuals)
+
+# Run the model of R(Y|Z) on R(X|Z)
+resid.model2c <- lm(resid.arm2c ~ resid.age2c, data = data1)
+summary(resid.model2c)
+
+mr2c <- lm(arm.C ~ age + ht + sex, data = data1)
+summary(mr2c)
+```
+
+```{r}
+avplot2 <- ggplot(data = data1,
+                  aes(x = resid.age2c, y = resid.arm2c)) +
+  geom_jitter(alpha = 0.5) +
+  geom_smooth(aes(y = predict(resid.model2c)), method = "lm", formula = y ~ x,
+              linewidth = 1, color = "#024873", se = FALSE) +
+  labs(x = "Residuals of age on height, weight, age",
+       y = "Residuals of arm circumference on height, weight, age",
+       title = "Adjusted variable plot for arm circumference on age \n adjusting for height and age")
+avplot2
+```
