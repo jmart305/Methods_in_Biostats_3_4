@@ -1,11 +1,10 @@
 ---
 title: "Homework 1"
 author: "Julia Martin"
-output: html_document
 date: "2025-02-02"
-editor_options: 
-  markdown: 
-    wrap: 72
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ### I. Interpreting Simple Linear Regression Coefficients
@@ -52,7 +51,8 @@ The weights of 185 children ranging from 1 to 60 months of age were
 plotted as a function of age. The average (SD) weight of 12 month olds
 is approximately 7 (0.8) kg, respectively. Average and SD of weight
 increases with age such that the average (SD) weight is approximately
-11.5 (1.4) and 13 (1.8) for children aged 36 and 48 months, respectively.
+11.5 (1.4) and 13 (1.8) for children aged 36 and 48 months,
+respectively.
 
 #### 2. Create a new figure that plots weight as a function of age separately for male and female children, including separate smooth functions for each sex.
 
@@ -69,9 +69,15 @@ ggplot(nepal_anthro_clean, aes(x = age, y = wt)) +
   labs(color='Sex') 
 ```
 
-I plotted the weights of 185 children as a function of age with separate smoothing lines for males and females. The average weight of 12 month old females is approximately 7
-kg and increases with age so that the average weights of 24 month old and 36 month old
-females is approximately 9 kg and 11.5 kg, respectively. The average weight for males is similar to that of females, but after approximately 45 months, the male average weight increases at a higher rate than that of females, so that by 60 months the average weight for males is 14.5 kg and for females is only 13 kg.  
+I plotted the weights of 185 children as a function of age with separate
+smoothing lines for males and females. The average weight of 12 month
+old females is approximately 7 kg and increases with age so that the
+average weights of 24 month old and 36 month old females is
+approximately 9 kg and 11.5 kg, respectively. The average weight for
+males is similar to that of females, but after approximately 45 months,
+the male average weight increases at a higher rate than that of females,
+so that by 60 months the average weight for males is 14.5 kg and for
+females is only 13 kg.
 
 #### 3. Fit the simple linear regression of weight on age.
 
@@ -86,10 +92,10 @@ confint(slr)[2,]
 
 The average weight of a newborn child (age = 0 months) is estimated to
 be 5.44 kg with a 95% confidence interval of (5.04, 5.85) kg. The
-difference in average weight comparing children who differ in age by one month
-is estimated to be 0.157 kg with a 95% confidence interval of (0.145,
-0.169) kg. The measure of spread or variation in weight for children of any given age in
-this data is estimated to be 1.4 kg.
+difference in average weight comparing children who differ in age by one
+month is estimated to be 0.157 kg with a 95% confidence interval of
+(0.145, 0.169) kg. The measure of spread or variation in weight for
+children of any given age in this data is estimated to be 1.4 kg.
 
 #### 4. Add the fitted line from the simple linear regression to the figure you created in 1
 
@@ -109,7 +115,8 @@ ggplot(nepal_anthro_clean, aes(x = age, y = wt)) +
 #### a. The simple linear regression assumes that the average weight increases linearly with age. Use evidence from your figure and comment on whether you think this assumption is reasonable or not.
 
 This assumption is reasonable for children aged 1 to 60 months based on
-the figure because the data points in the scatterplot are distributed closely around the increasing linear regression line. 
+the figure because the data points in the scatterplot are distributed
+closely around the increasing linear regression line.
 
 #### b. Further, the simple linear regression assumes that the variation in weights is the same at each age. Use evidence from your figure and comment on whether you think this assumption is reasonable or not.
 
@@ -117,11 +124,12 @@ This assumption is not reasonable because based on the figure, the
 spread of the data points around the linear regression line is smaller
 for younger ages compared to older ages. The spread of the data points
 is consistent from roughly 1 to 30 months, but from 30 to 60 months, the
-spread is larger, indicating that constant variation may not be a valid assumption.
+spread is larger, indicating that constant variation may not be a valid
+assumption.
 
-### II. Modeling Non-linear Relationships with MLR  
+### II. Modeling Non-linear Relationships with MLR
 
-#### 1. Linear Splines  
+#### 1. Linear Splines
 
 #### a. Create new variables
 
@@ -155,8 +163,8 @@ ggplot(nepal_anthro_spline, aes(x = age, y = wt)) +
 #### d. Using simple language free of statistical jargon, write a sentence describing the model you fit.
 
 Using data from Nepali children ages 1 to 60 months, I fit a model that
-describes the linear relationship between weight and age at 3 different age
-intervals: 0-6 months, 6-12 months, and 12-60 months.
+describes the linear relationship between weight and age at 3 different
+age intervals: 0-6 months, 6-12 months, and 12-60 months.
 
 #### e. Interpret the meaning of the coefficients for the three terms: age_c, age_sp6 and age_sp12 as if for a growth journal.
 
@@ -168,21 +176,30 @@ confint(linear_spline_reg)[4,]
 ```
 
 Among children under 6 months of age, the difference in weight comparing
-children who differ by one month in age is 0.5285 kg, which is the coefficient for age_c. The 95% confidence interval for this coefficient is (0.197, 0.86) kg. Among
-children 6-12 months of age, the difference in average weight comparing
-children who differ by one month in age is 0.186 kg, so the coefficient for age_sp6, -0.3423, is the difference between the average monthly change in kilograms of weight
-comparing children 6 to 12 vs. under 6 months of age. A 95% confidence
-interval for this coefficient is (-0.789, 0.105) kg. Among children
-12-60 months of age, the difference in average weight comparing children
-who differ by one month in age is 0.147 kg, so the coefficient for
-age_sp12, -0.039, is the difference between the average monthly change
-in kilograms of weight comparing children 12 to 60 vs. 6 to 12 months of
+children who differ by one month in age is 0.5285 kg, which is the
+coefficient for age_c. The 95% confidence interval for this coefficient
+is (0.197, 0.86) kg. Among children 6-12 months of age, the difference
+in average weight comparing children who differ by one month in age is
+0.186 kg, so the coefficient for age_sp6, -0.3423, is the difference
+between the average monthly change in kilograms of weight comparing
+children 6 to 12 vs. under 6 months of age. A 95% confidence interval
+for this coefficient is (-0.789, 0.105) kg. Among children 12-60 months
+of age, the difference in average weight comparing children who differ
+by one month in age is 0.147 kg, so the coefficient for age_sp12,
+-0.039, is the difference between the average monthly change in
+kilograms of weight comparing children 12 to 60 vs. 6 to 12 months of
 age. A 95% confidence interval for this coefficient is (-0.201, 0.122)
 kg.
 
 #### f. Comment in a few sentences on the evidence from this analysis for or against a linear growth curve
 
-The evidence from this analysis suggests that a linear growth curve may not be the best model for this data because for the interval from 12-60 months, there is a lot more variation in the outcome variable weight (compared to the younger ages) that this linear growth curve does not seem to capture very well. Describing the relationship between age and weight in this data may benefit from a more flexible type of model.  
+The evidence from this analysis suggests that a linear growth curve for
+the entire range of age may not be the best model for this data because
+based on the plot in part c, the slopes describing the relationship
+between age and weight are different for the different intervals. I
+observe a much steeper slope for 0-6 months than for greater ages, which
+suggests that a linear spline data with knots may fit the data better
+than a single linear model.
 
 #### 2. Cubic Splines
 
@@ -211,7 +228,9 @@ ggplot(nepal_anthro_spline2, aes(x = age, y = wt)) +
   xlab("Age at Baseline (months)") + 
   ylab("Weight at Baseline (kg)") +
   geom_line(aes(x = age, y = linear_spline_reg$fitted.values,color="1")) + 
+  geom_point(aes(x = age, y = linear_spline_reg$fitted.values), color = "red", size = 1) +
   geom_line(aes(x = age, y = cubic_spline_reg$fitted.values,color="2")) + 
+  geom_point(aes(x = age, y = cubic_spline_reg$fitted.values), color = "blue", size = 1) +
   scale_color_manual(breaks = c("1", "2"),
                        values = c("red", "blue"),
                        labels = c("Linear Spline",
@@ -252,11 +271,13 @@ ggplot(nepal_anthro_spline2, aes(x = age, y = wt)) +
   xlab("Age at Baseline (months)") + 
   ylab("Weight at Baseline (kg)") +
   geom_line(aes(x = age, y = linear_spline_reg$fitted.values,color="1")) + 
+  geom_point(aes(x = age, y = linear_spline_reg$fitted.values), color = "red", size = 1) +
   geom_line(aes(x = age, y = cubic_spline_reg$fitted.values,color="2")) + 
- #geom_smooth(method = "glm", formula = y ~ ns(x, df = 3), se = FALSE) +
+  geom_point(aes(x = age, y = cubic_spline_reg$fitted.values), color = "blue", size = 1) +
   geom_line(aes(x = age, y = natural_spline_reg$fitted.values,color="3")) +
+  geom_point(aes(x = age, y = natural_spline_reg$fitted.values), color = "green4", size = 1) +
   scale_color_manual(breaks = c("1", "2", "3"),
-                       values = c("red", "blue", "green2"),
+                       values = c("red", "blue", "green4"),
                        labels = c("Linear Spline",
                                   "Cubic Spline", "Natural Cubic Spline with df = 3")) +
   theme_bw() +
@@ -324,8 +345,8 @@ ggplot(data = hat_plot, aes(x = age)) +
 
 For each child's predicted value, I observe that the values of Y that
 are close to that child's age are most informative (have the largest
-weights) because the points are concentrated around each child's age. For
-example, for the 24 month old child, there is a peak around 18-24
+weights) because the points are concentrated around each child's age.
+For example, for the 24 month old child, there is a peak around 18-24
 months, which indicates that the values of Y around that range have the
 largest weights in the hat matrix row for the 24 month old child. This
 is what I would expect based on the mean model I fit because the
@@ -407,7 +428,7 @@ model6_cvpe <- sum((pred_weight$wt - pred_weight$model6_pred)^2)
 model7_cvpe <- sum((pred_weight$wt - pred_weight$model7_pred)^2)
 model8_cvpe <- sum((pred_weight$wt - pred_weight$model8_pred)^2)
 
-# Append the cross validated MSE to the model_mse data frame
+# Create data frame with prediction errors
 model_pe <- 
   data.frame(df = seq(1,8,1),
              cv_prediction_error = c(model1_cvpe, model2_cvpe, model3_cvpe, model4_cvpe, model5_cvpe, model6_cvpe, model7_cvpe, model8_cvpe))
@@ -429,7 +450,9 @@ ggplot(model_pe, aes(x = df, y = cv_prediction_error)) +
   theme_bw()
 ```
 
-The natural spline model with 2 degrees of freedom results in the lowest cross-validation prediction error and therefore the best predictions of the data. 
+The natural spline model with 2 degrees of freedom results in the lowest
+cross-validation prediction error and therefore the best predictions of
+the data.
 
 #### 4. Compare the cross-validated prediction error to the non-CV prediction error for each df where the latter uses the same data to fit the model as assess its prediction error
 
@@ -458,46 +481,97 @@ pred_8 <- predict(model_8_noncv, newdata = nepal_anthro_clean)
 
 # compute prediction errors (sum of squared errors)
 
-model1_pe <- sum((pred_weight$wt - pred_1)^2)
-model2_pe <- sum((pred_weight$wt - pred_2)^2)
-model3_pe <- sum((pred_weight$wt - pred_3)^2)
-model4_pe <- sum((pred_weight$wt - pred_4)^2)
-model5_pe <- sum((pred_weight$wt - pred_5)^2)
-model6_pe <- sum((pred_weight$wt - pred_6)^2)
-model7_pe <- sum((pred_weight$wt - pred_7)^2)
-model8_pe <- sum((pred_weight$wt - pred_8)^2)
+model1_pe <- sum((nepal_anthro_clean$wt - pred_1)^2)
+model2_pe <- sum((nepal_anthro_clean$wt - pred_2)^2)
+model3_pe <- sum((nepal_anthro_clean$wt - pred_3)^2)
+model4_pe <- sum((nepal_anthro_clean$wt - pred_4)^2)
+model5_pe <- sum((nepal_anthro_clean$wt - pred_5)^2)
+model6_pe <- sum((nepal_anthro_clean$wt - pred_6)^2)
+model7_pe <- sum((nepal_anthro_clean$wt - pred_7)^2)
+model8_pe <- sum((nepal_anthro_clean$wt - pred_8)^2)
 ```
 
 ```{r}
-model_1_noncv <- lm(wt ~ ns(age, 1), data = train_data)
+model_pe_noncv <- 
+  data.frame(df = seq(1,8,1),
+             non_cv_prediction_error = c(model1_pe, model2_pe, model3_pe, model4_pe, model5_pe, model6_pe, model7_pe, model8_pe))
 
-p <- predict(model1_train, newdata = train_data)
-sum((train_data$wt - p)^2)
+kable(model_pe_noncv, "html", align = "lc",
+      col.names = c("Degrees of freedom", "Non-Cross validated prediction error"))
 ```
+
+```{r}
+ggplot(model_pe, aes(x = df, y = cv_prediction_error)) +
+  geom_point(aes(color = "1")) +
+  geom_line(aes(color = "1")) +
+  geom_point(data = model_pe_noncv, aes(x = df, y = non_cv_prediction_error, color = "2")) +
+  geom_line(data = model_pe_noncv, aes(x = df, y = non_cv_prediction_error, color = "2")) +
+  labs(title = str_wrap("Cross-Validated and Non-Cross-Validated Prediction Error vs. Degrees of Freedom", width = 65),
+       x = "Degrees of Freedom",
+       y = "Prediction Error (sum of squared errors)") +
+  scale_color_manual(breaks = c(1,2), values = c("blue", "red"), labels = c("Cross-Validated", "Non-Cross-Validated")) +
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.4),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 10),
+          legend.key = element_blank())
+```
+
+The natural spline model with the lowest non-cross validated prediction
+error is the model with 8 degrees of freedom, which is different than
+the cross-validated prediction error. However, I still choose the model
+with 2 degrees of freedom as the optimal model because it has the lowest
+prediction error when using cross-validation. The non-cross validated
+approach may be overfitting the data because it uses the same data as
+its training and testing set, so even though the prediction error is
+lower for the model with 8 degrees of freedom, it may not generalize
+well to new data.
 
 #### 5. Fit this optimal model to all of the data; plot weight data against age, and add this optimal curve to the display
 
 ```{r}
-model_2_noncv <- lm(wt ~ ns(age, 2), data = nepal_anthro_clean)
+model_2 <- lm(wt ~ ns(age, 2), data = nepal_anthro_clean)
 
 ggplot(nepal_anthro_clean, aes(x = age, y = wt)) +
   geom_jitter(size = 1, color = "blue") +
   labs(title = str_wrap("Weight vs. Age of Nepali Children and Fitted Values from Natural Spline with 2 df", width = 70)) + 
   xlab("Age at Baseline (months)") + 
   ylab("Weight at Baseline (kg)") +
-  geom_line(aes(x = age, y = model_2_noncv$fitted.values),color="red") +
+  geom_line(aes(x = age, y = model_2$fitted.values),color="red") +
   theme_bw()
 ```
 
-#### 6. Provide two paragraphs with details of the analysis you conducted as if you are writing for a public health journal. In the first paragraph, describe your methods. In the second paragraph provide your results; be quantitative.  
+#### 6. Provide two paragraphs with details of the analysis you conducted as if you are writing for a public health journal. In the first paragraph, describe your methods. In the second paragraph provide your results; be quantitative.
 
-I used cross-validation to select the optimal natural spline model to describe the relationship between weight and age of 185 Nepali children. For 8 different natural spline models with degrees of freedom from 1 to 8, I conducted cross-validation to obtain the predicted weight for each child. I split the data into 10 folds and for each of the 10 iterations, one of the folds was used as the test set while the other 9 folds were used to train the model. In this way, the predictions were obtained using data that was not used to fit the model. To calculate the prediction errors for each of the 8 models, I summed the squared differences between the predicted and observed weights for each child and displayed these results in a table and plot. 
-**METHODS FOR NON-CV**
-I then calculated prediction errors using a non-cross-validation procedure/approach and 
-displayed in a table. 
+I used cross-validation to select the optimal natural spline model to
+describe the relationship between weight and age of 185 Nepali children.
+For 8 different natural spline models with degrees of freedom from 1 to
+8, I conducted cross-validation to obtain the predicted weight for each
+child. I split the data into 10 folds and for each of the 10 iterations,
+one of the folds was used as the test set while the other 9 folds were
+used to train the model. In this way, the predictions were obtained
+using data that was not used to fit the model. To calculate the
+prediction errors for each of the 8 models, I summed the squared
+differences between the predicted and observed weights for each child
+and displayed these results in a table and plot. I then calculated
+prediction errors using a non-cross-validation approach by using the
+entire dataset to fit the model a one time and then make predictions on
+the entire dataset using that model. I calculated the prediction errors
+for each of the 8 models and displayed these results in a table and
+added to the plot I created for the cross-validation prediction errors.
 
-The cross-validated prediction error was lowest for the natural spline model with 2 degrees of freedom and had a value of 341.88. The highest cross-validated prediction errors were 366.87 and 365.83, which correspond to the natural spline models with 1 and 8 degrees of freedom, respectively. This suggests that the natural spline model with 2 degrees of freedom is the best model for predicting weight based on age. ***RESULTS FOR NON-CV*** 
-
+The cross-validated prediction error was lowest for the natural spline
+model with 2 degrees of freedom and had a value of 341.88. The highest
+cross-validated prediction errors were 366.87 and 365.83, which
+correspond to the natural spline models with 1 and 8 degrees of freedom,
+respectively. This suggests that the natural spline model with 2 degrees
+of freedom is the best model for predicting weight based on age. The
+non-cross validated prediction error was lowest for the natural spline
+model with 8 degrees of freedom and had a value of 318.26. The non-cross
+validated prediction error for the natural spline model with 2 degrees
+of freedom was 327.63. However, I favored the cross-validated approach
+and chose the natural spline model with 2 degrees of freedom as the
+optimal model.
 
 ### IV: Interpreting multiple linear regression coefficients
 
@@ -533,7 +607,8 @@ not practically exist in reality and we did not observe it in our data.
 The difference in average weight comparing children who differ in age by
 one month but have the same height is estimated to be 0.005 kg with a
 95% confidence interval of (-0.014, 0.025) kg. The measure of spread or
-variation in weight for children of any given age in this data is estimated to be 0.916 kg.
+variation in weight for children of any given age in this data is
+estimated to be 0.916 kg.
 
 #### 3. Create an adjusted variable plot of weight on age (linear), adjusting for height (linear). Show numerically that the adjusted variable slope is equal to the multiple linear regression estimate for age.
 
@@ -555,6 +630,17 @@ compare_age_coef
 As shown in the table above, the coefficient for age in the multiple
 linear regression model is the same as the adjusted variable slope for
 age when regressing weight on age and adjusting for height.
+
+```{r}
+adj_resid_plot <- data.frame(residual_age = residual_age, residual_weight = residual_weight)
+ggplot(data = adj_resid_plot, aes(x = residual_age, y = residual_weight)) +
+  geom_jitter(alpha = 0.5) +
+  geom_smooth(aes(y = predict(adjust_model)), method = "lm", formula = y ~ x,
+              linewidth = 1, color = "green4", se = FALSE) +
+  labs(x = "Residuals of Age on Height",
+       y = "Residuals of Weight on Height",
+       title = "Adjusted Variable Plot for Weight on Age Adjusting for Height")
+```
 
 #### 4. In a few sentences, compare the coefficients and confidence intervals for age from the SLR and MLR and explain differences in their interpretations and estimated values.
 
@@ -581,8 +667,8 @@ coefficient in the simple linear regression does not contain 0 while the
 confidence interval for the age coefficient in the multiple linear
 regression does contain zero. This is further evidence that the age
 coefficient may not be very significant in the multiple linear
-regression model because it is so small that, depending on variability, it
-could be close to zero.
+regression model because it is so small that, depending on variability,
+it could be close to zero.
 
 #### 5. As if you are preparing a manuscript for submission to a public health journal, write one or two sentences to describe the simple and multiple linear regression models that you fit.
 
