@@ -148,6 +148,7 @@ ggplot(nepal_anthro_spline, aes(x = age, y = wt)) +
   xlab("Age at Baseline (months)") + 
   ylab("Weight at Baseline (kg)") +
   geom_line(aes(x = age, y = linear_spline_reg$fitted.values),color="red") +
+  geom_point(aes(x = age, y = linear_spline_reg$fitted.values), color = "red", size = 1) +
   theme_bw()
 ```
 
