@@ -68,7 +68,7 @@ my.sim = function(n = 100){
 }
 ```
 
-### b. For n =100, run your R function at least 1,000 times and create plots for beta_j  
+### b. For n=100, run your R function at least 1,000 times and create plots for beta_j  
 
 ```{r}
 set.seed(12345)
@@ -82,30 +82,147 @@ for(i in 1:K) slopes = cbind(slopes,my.sim(n = 100))
 summary(t(slopes))
 
 # Histogram and Normal Probability Plot for Beta 1
-hist(t(slopes)[,1], main = expression(paste("Histogram of ", hat(beta[1]))), xlab = expression(hat(beta[1])), ylab = "Frequency", col = "lightblue", border = "black")
-qqnorm(t(slopes)[,1], main = expression(paste("Normal Probability Plot of ", hat(beta[1]))))
+hist(t(slopes)[,1], main = expression(paste("Histogram of ", hat(beta[1]), " (n = 100)")), xlab = expression(hat(beta[1])), ylab = "Frequency", col = "lightblue", border = "black")
+qqnorm(t(slopes)[,1], main = expression(paste("Normal Probability Plot of ", hat(beta[1]), " (n = 100)")))
+qqline(t(slopes)[,1], col = "red", lwd = 2)
 
 # Histogram and Normal Probability Plot for Beta 2
-hist(t(slopes)[,2], main = expression(paste("Histogram of ", hat(beta[2]))), xlab = expression(hat(beta[2])), ylab = "Frequency", col = "lightblue", border = "black")
-qqnorm(t(slopes)[,2], main = expression(paste("Normal Probability Plot of ", hat(beta[2]))))
+hist(t(slopes)[,2], main = expression(paste("Histogram of ", hat(beta[2]), " (n = 100)")), xlab = expression(hat(beta[2])), ylab = "Frequency", col = "lightblue", border = "black")
+qqnorm(t(slopes)[,2], main = expression(paste("Normal Probability Plot of ", hat(beta[2]), " (n = 100)")))
+qqline(t(slopes)[,2], col = "red", lwd = 2)
 ```
 
-By looking at the histograms and normal probability plots for $\hat{\beta_1}$ and $\hat{\beta_2}$, we can see that the sampling distributions for $\hat{\beta_1}$ and $\hat{\beta_2}$ are approximately normal because the histograms show a bell-shaped curve and the normal probability plots show a linear relationship between the theoretical and sample quantiles.  
+By looking at the histograms and normal probability plots for $\hat{\beta_1}$ and $\hat{\beta_2}$, we can see that the sampling distributions for $\hat{\beta_1}$ and $\hat{\beta_2}$ are approximately normal because the histograms show a bell-shaped curve and the normal probability plots show a linear relationship between the theoretical and sample quantiles.
 
 ### c. Reduce the sample size to n = 15. Comment on any differences you observe in the sampling distribution for beta_j for j = 1, 2 when n = 100 vs. n = 15.  
 
 ```{r}
-set.seed(56)
+set.seed(12345)
 slopes_15 = NULL
 for(i in 1:K) slopes_15 = cbind(slopes_15,my.sim(n = 15))
 summary(t(slopes_15))
 
 # Histogram and Normal Probability Plot for Beta 1
-hist(t(slopes_15)[,1], main = expression(paste("Histogram of ", hat(beta[1]))), xlab = expression(hat(beta[1])), ylab = "Frequency", col = "lightblue", border = "black")
-qqnorm(t(slopes_15)[,1], main = expression(paste("Normal Probability Plot of ", hat(beta[1]))))
+hist(t(slopes_15)[,1], main = expression(paste("Histogram of ", hat(beta[1]), " (n = 15)")), xlab = expression(hat(beta[1])), ylab = "Frequency", col = "lightblue", border = "black")
+qqnorm(t(slopes_15)[,1], main = expression(paste("Normal Probability Plot of ", hat(beta[1]), " (n = 15)")))
+qqline(t(slopes_15)[,1], col = "red", lwd = 2)
 
 # Histogram and Normal Probability Plot for Beta 2
-hist(t(slopes_15)[,2], main = expression(paste("Histogram of ", hat(beta[2]))), xlab = expression(hat(beta[2])), ylab = "Frequency", col = "lightblue", border = "black")
-qqnorm(t(slopes_15)[,2], main = expression(paste("Normal Probability Plot of ", hat(beta[2]))))
+hist(t(slopes_15)[,2], main = expression(paste("Histogram of ", hat(beta[2]), " (n = 15)")), xlab = expression(hat(beta[2])), ylab = "Frequency", col = "lightblue", border = "black")
+qqnorm(t(slopes_15)[,2], main = expression(paste("Normal Probability Plot of ", hat(beta[2]), " (n = 15)")))
+qqline(t(slopes_15)[,2], col = "red", lwd = 2)
 ```
 
+When I change the sample size to 15, I observe that the distributions for both $\hat{\beta_1}$ and $\hat{\beta_2}$ still appear mostly normal by looking at the histograms, but the spread of the distribution is much greater than with a sample size of 100, indicating a larger standard error of the estimate. By comparing the normal probability plots, 
+
+FINISH COMMENTING -- TALK ABOUT THE DEPARTURES FROM THE NORMAL QQLINE  
+
+### d. Pick you own non-normal distribution for the residuals and run the simulation again using n = 100 and n = 15.  
+
+I chose for the residuals to follow an exponential distribution with rate parameter 1.  
+
+```{r}
+my.sim.nonnormal.resid = function(n = 100){
+  ## Generate X1 
+  X1 = rexp(n, rate = 5)
+  ## Generate X2
+  X2 = 0.2 * X1 + rnorm(n,mean=0,sd=0.2)
+  ## Generate Y - using residuals that have an exponential distribution
+  y = 1.5 + 1 * X1 - 0.25 * X2 + scale(rexp(n,rate = 1))
+  ##
+  ## After the above commands, you have simulated
+  ## the sample of size n with data (y, X1, X2)
+  ##
+  ## Fit the MLR
+  fit = lm(y~X1 + X2)
+  ## Return beta-hat-j for j = 1 and 2
+  fit$coefficients[2:3]
+}
+```
+
+Rerun simulation using n = 100  
+
+```{r}
+set.seed(12345)
+
+## Set K = 1000
+K = 1000
+
+## You can use a for loop
+slopes = NULL
+for(i in 1:K) slopes = cbind(slopes,my.sim.nonnormal.resid(n = 100))
+summary(t(slopes))
+
+# Histogram and Normal Probability Plot for Beta 1
+hist(t(slopes)[,1], main = expression(paste("Histogram of ", hat(beta[1]), " (n = 100)")), xlab = expression(hat(beta[1])), ylab = "Frequency", col = "lightblue", border = "black")
+qqnorm(t(slopes)[,1], main = expression(paste("Normal Probability Plot of ", hat(beta[1]), " (n = 100)")))
+qqline(t(slopes)[,1], col = "red", lwd = 2)
+
+# Histogram and Normal Probability Plot for Beta 2
+hist(t(slopes)[,2], main = expression(paste("Histogram of ", hat(beta[2]), " (n = 100)")), xlab = expression(hat(beta[2])), ylab = "Frequency", col = "lightblue", border = "black")
+qqnorm(t(slopes)[,2], main = expression(paste("Normal Probability Plot of ", hat(beta[2]), " (n = 100)")))
+qqline(t(slopes)[,2], col = "red", lwd = 2)
+```
+
+Rerun simulation using n = 15  
+
+```{r}
+set.seed(12345)
+slopes_15 = NULL
+for(i in 1:K) slopes_15 = cbind(slopes_15,my.sim.nonnormal.resid(n = 15))
+summary(t(slopes_15))
+
+
+# Histogram and Normal Probability Plot for Beta 1
+hist(t(slopes_15)[,1], main = expression(paste("Histogram of ", hat(beta[1]), " (n = 15)")), xlab = expression(hat(beta[1])), ylab = "Frequency", col = "lightblue", border = "black")
+qqnorm(t(slopes_15)[,1], main = expression(paste("Normal Probability Plot of ", hat(beta[1]), " (n = 15)")))
+qqline(t(slopes_15)[,1], col = "red", lwd = 2)
+
+# Histogram and Normal Probability Plot for Beta 2
+hist(t(slopes_15)[,2], main = expression(paste("Histogram of ", hat(beta[2]), " (n = 15)")), xlab = expression(hat(beta[2])), ylab = "Frequency", col = "lightblue", border = "black")
+qqnorm(t(slopes_15)[,2], main = expression(paste("Normal Probability Plot of ", hat(beta[2]), " (n = 15)")))
+qqline(t(slopes_15)[,2], col = "red", lwd = 2)
+```
+
+***FINISH COMMENT***
+
+### 2. Implications of correlated or uncorrelated Xs in MLR  
+
+```{r}
+my.sim.part2 = function(n = 100){
+  ## Generate X1 
+  X1 = rexp(n, rate = 5)
+  ## Generate X2
+  X2 = 0.2 * X1 + rnorm(n,mean=0,sd=0.2)
+  ## Generate Y - using residuals that follow a normal distribution
+  y = 1.5 + 1 * X1 - 0.25 * X2 + rnorm(n)
+  ##
+  ## After the above commands, you have simulated
+  ## the sample of size n with data (y, X1, X2)
+  ##
+  ## Fit the MLR
+  fit = lm(y~X1 + X2)
+  ## Return beta-hat-j for j = 1 and 2
+  fit$coefficients[2:3]
+  ## Return covariance for beta 1 and beta 2
+  covar = vcov(fit)[2,3]
+  ## Return correlation for beta 1 and beta 2
+  corr = vcov(fit)[2,3]/sqrt(vcov(fit)[2,2])/ sqrt(vcov(fit)[3,3])
+  ## Undadjusted model with X1 predictor
+  model1_coef <- coef(lm(y~X1))
+  ## Undadjusted model with X2 predictor
+  model2_coef <- coef(lm(y~X2))
+  return(list(Beta_1 = fit$coefficients[2], 
+              Beta_2 = summary(fit)$coefficients[3], 
+              Covariance_Beta1_Beta2 = covar,
+              Correlation = corr,
+              Unadjusted_Model_1_Coefs = model1_coef,
+              Unadjusted_Model_2_Coefs = model2_coef))
+}
+my.sim.part2(n = 100)
+slopes_15 = NULL
+for(i in 1:K) slopes_15 = cbind(slopes_15,my.sim.part2(n = 100))
+slopes_15
+```
+
+USE A LIST TO RETURN THE VALUES
