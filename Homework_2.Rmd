@@ -1,13 +1,22 @@
 ---
 title: "Homework_2"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: "2025-02-17"
 ---
 
+```{r}
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(biostat3)
+library(boot)
+```
+
 ## I. Multiple Linear Regression: Matrix Representation
 
-### 2. Write an R function that takes the vector Y and matrix X as input then calculates and returns esimtations paramaters of interest  
-
+### 2. Write an R function that takes the vector Y and matrix X as input then calculates and returns esimtations parameters of interest    
 ```{r}
 Y <- c(-0.1, 2.9, 6.2, 7.3, 10.7)
 X <- matrix(c(1, 1, 1, 1, 1, 1, 3, 5, 7, 9), nrow=5, ncol=2)
@@ -16,11 +25,10 @@ matrix_linear_reg <- function(Y,X) {
   beta_hat <- solve(t(X) %*% X) %*% t(X) %*% Y
   # b. the residual mean squared error
  # resid_mse <- sum((Y - X%*%beta_hat)^2) / (length(Y) - ncol(X))
-  resid_mse <- (t(Y - X%*%beta_hat) %*% (Y - X%*%beta_hat)) / 
+  resid_mse <- sum((Y - X%*%beta_hat)^2) / 
     (length(Y) - ncol(X))
-  # c. the variance-covariance matrix of the least squares estiamtes
-  resid_mse_bias <- sum((Y - X%*%beta_hat)^2) / length(Y)
-  varcovar <- resid_mse_bias * solve(t(X) %*% X)
+  # c. the variance-covariance matrix of the least squares estimates
+  varcovar <- resid_mse * solve(t(X) %*% X)
   # d. the vector of predicted values 
   predicted_values <- X %*% solve(t(X)%*%X) %*% t(X) %*% Y
   # e. vector of residuals
@@ -35,8 +43,7 @@ matrix_linear_reg(Y,X)
 
 ### 3. Using the R function from Question 2, verify your estimates of the simple linear regression intercept, slope and residual mean squared error computed in Question 1.  
 
-The estimates of the simple linear regression intercept, slope, and residual mean squared error are the same in part 1 and part 2.
-write beta hat in latex
+The estimates of the simple linear regression intercept, slope, and residual mean squared error are the same in part 1 and part 2.  
 
 $\hat{\beta_0} = -1.1$  
 $\hat{\beta_1} = 1.3$
@@ -73,16 +80,14 @@ my.sim = function(n = 100){
 ```{r}
 set.seed(12345)
 
-## Set K = 1000
-K = 1000
+K = 10000
 
-## You can use a for loop
 slopes = NULL
 for(i in 1:K) slopes = cbind(slopes,my.sim(n = 100))
 summary(t(slopes))
 
 # Histogram and Normal Probability Plot for Beta 1
-hist(t(slopes)[,1], main = expression(paste("Histogram of ", hat(beta[1]), " (n = 100)")), xlab = expression(hat(beta[1])), ylab = "Frequency", col = "lightblue", border = "black")
+hist(t(slopes)[,1], main = expression(paste("Histogram of ", hat(beta[1]), " (n = 100)")), xlab = expression(hat(beta[1])), ylab = "Frequency", col = "lightblue", border = "black", breaks = 20)
 qqnorm(t(slopes)[,1], main = expression(paste("Normal Probability Plot of ", hat(beta[1]), " (n = 100)")))
 qqline(t(slopes)[,1], col = "red", lwd = 2)
 
@@ -92,12 +97,11 @@ qqnorm(t(slopes)[,2], main = expression(paste("Normal Probability Plot of ", hat
 qqline(t(slopes)[,2], col = "red", lwd = 2)
 ```
 
-By looking at the histograms and normal probability plots for $\hat{\beta_1}$ and $\hat{\beta_2}$, we can see that the sampling distributions for $\hat{\beta_1}$ and $\hat{\beta_2}$ are approximately normal because the histograms show a bell-shaped curve and the normal probability plots show a linear relationship between the theoretical and sample quantiles.
+By looking at the histograms and normal probability plots for $\hat{\beta_1}$ and $\hat{\beta_2}$, we can see that the sampling distributions for $\hat{\beta_1}$ and $\hat{\beta_2}$ are approximately normal because the histograms show a bell-shaped curve and the normal probability plots that the sample and theoretical quantiles are similar, indicated by the points closely following the line on the plot. 
 
 ### c. Reduce the sample size to n = 15. Comment on any differences you observe in the sampling distribution for beta_j for j = 1, 2 when n = 100 vs. n = 15.  
 
 ```{r}
-set.seed(12345)
 slopes_15 = NULL
 for(i in 1:K) slopes_15 = cbind(slopes_15,my.sim(n = 15))
 summary(t(slopes_15))
@@ -113,9 +117,7 @@ qqnorm(t(slopes_15)[,2], main = expression(paste("Normal Probability Plot of ", 
 qqline(t(slopes_15)[,2], col = "red", lwd = 2)
 ```
 
-When I change the sample size to 15, I observe that the distributions for both $\hat{\beta_1}$ and $\hat{\beta_2}$ still appear mostly normal by looking at the histograms, but the spread of the distribution is much greater than with a sample size of 100, indicating a larger standard error of the estimate. By comparing the normal probability plots, 
-
-FINISH COMMENTING -- TALK ABOUT THE DEPARTURES FROM THE NORMAL QQLINE  
+When I change the sample size to 15, I observe that the distributions for both $\hat{\beta_1}$ and $\hat{\beta_2}$ still appear mostly normal by looking at the histograms, but the spread of the distribution is much greater with this simulation of n = 15 compared to the simulation with n = 100, indicating a larger standard error of the estimate. By comparing the normal probability plots, however, the plot for $\hat{\beta_1}$ with n = 15 has several points where it deviates from the normal line, indicating that this distribution may not be normal.  
 
 ### d. Pick you own non-normal distribution for the residuals and run the simulation again using n = 100 and n = 15.  
 
@@ -145,10 +147,6 @@ Rerun simulation using n = 100
 ```{r}
 set.seed(12345)
 
-## Set K = 1000
-K = 1000
-
-## You can use a for loop
 slopes = NULL
 for(i in 1:K) slopes = cbind(slopes,my.sim.nonnormal.resid(n = 100))
 summary(t(slopes))
@@ -167,11 +165,9 @@ qqline(t(slopes)[,2], col = "red", lwd = 2)
 Rerun simulation using n = 15  
 
 ```{r}
-set.seed(12345)
 slopes_15 = NULL
 for(i in 1:K) slopes_15 = cbind(slopes_15,my.sim.nonnormal.resid(n = 15))
 summary(t(slopes_15))
-
 
 # Histogram and Normal Probability Plot for Beta 1
 hist(t(slopes_15)[,1], main = expression(paste("Histogram of ", hat(beta[1]), " (n = 15)")), xlab = expression(hat(beta[1])), ylab = "Frequency", col = "lightblue", border = "black")
@@ -184,9 +180,15 @@ qqnorm(t(slopes_15)[,2], main = expression(paste("Normal Probability Plot of ", 
 qqline(t(slopes_15)[,2], col = "red", lwd = 2)
 ```
 
-***FINISH COMMENT***
+Using this simulation with residuals that follow an exponential distribution, the histograms for $\hat{\beta_1}$ and $\hat{\beta_2}$ for sample size n = 100 show that the estimates follow a normal distribution. The normal probability plots support this because the points closely follow the reference line indicating that the theoretical and sample quantiles are similar. When adjusting the sample size to n = 15 and rerunning the simulation, the histograms for $\hat{\beta_1}$ and $\hat{\beta_2}$ show a generally bell-shaped curve, again with much greater variance than for the n = 100 case, but the normal probability plots show that the points deviate from the reference line, indicating that the distribution may not be normal.  
+
+### e. Summarize your findings in a few sentences.  
+
+Throughout this problem, I found that the sampling distributions for $\hat{\beta_1}$ and $\hat{\beta_2}$ were approximately normal for sample size 100 using 10000 simulation runs, even though the residuals followed non-normal distributions in both cases (first a chi-squared distribution and then an exponential distribution). However, reducing the sample size to n = 15 with 10000 simulation runs resulted in distributions for $\hat{\beta_1}$ and $\hat{\beta_2}$ with much greater variances and normal probability plots showing considerable deviations from the reference line, indicating that the distributions may not be normal. My findings support the hypothesis that with a large enough sample size, the distribution of the estimates for $\hat{\beta_1}$ and $\hat{\beta_2}$ will be approximately normal even if the residuals do not follow a normal distribution. 
 
 ### 2. Implications of correlated or uncorrelated Xs in MLR  
+
+### a. Modify the function to save the covariance and correlation between the two beta estimates and coefficients from unadjusted models.  
 
 ```{r}
 my.sim.part2 = function(n = 100){
@@ -202,27 +204,461 @@ my.sim.part2 = function(n = 100){
   ##
   ## Fit the MLR
   fit = lm(y~X1 + X2)
-  ## Return beta-hat-j for j = 1 and 2
-  fit$coefficients[2:3]
   ## Return covariance for beta 1 and beta 2
   covar = vcov(fit)[2,3]
   ## Return correlation for beta 1 and beta 2
   corr = vcov(fit)[2,3]/sqrt(vcov(fit)[2,2])/ sqrt(vcov(fit)[3,3])
-  ## Undadjusted model with X1 predictor
-  model1_coef <- coef(lm(y~X1))
-  ## Undadjusted model with X2 predictor
-  model2_coef <- coef(lm(y~X2))
-  return(list(Beta_1 = fit$coefficients[2], 
+  ## Fit unadjusted model with X1 predictor
+  model1_unadj <- lm(y~X1)
+  ## Fit unadjusted model with X2 predictor
+  model2_unadj <- lm(y~X2)
+  return(data.frame(Beta_1 = summary(fit)$coefficients[2], 
               Beta_2 = summary(fit)$coefficients[3], 
               Covariance_Beta1_Beta2 = covar,
               Correlation = corr,
-              Unadjusted_Model_1_Coefs = model1_coef,
-              Unadjusted_Model_2_Coefs = model2_coef))
+              Unadjusted_Model_1_Intercept = summary(model1_unadj)$coefficients[1],
+              Unadjusted_Model_1_X1_Coef = summary(model1_unadj)$coefficients[2],
+              Unadjusted_Model_2_Intercept = summary(model2_unadj)$coefficients[1],
+              Unadjusted_Model_2_X2_Coef = summary(model2_unadj)$coefficients[2]))
 }
-my.sim.part2(n = 100)
-slopes_15 = NULL
-for(i in 1:K) slopes_15 = cbind(slopes_15,my.sim.part2(n = 100))
-slopes_15
 ```
 
-USE A LIST TO RETURN THE VALUES
+### b. For n = 100, run your R function at least 1,000 times. Calculate the average values of beta j for j = 1, 2 from the MLR and the two unadjusted SLR slope estimates. 
+
+```{r}
+set.seed(12345)
+K = 1000
+part2_estimations = NULL
+for(i in 1:K) part2_estimations = rbind(part2_estimations, my.sim.part2(n = 100))
+
+mean_estimations = data.frame(
+  Mean_Beta_1_MLR = mean(part2_estimations$Beta_1),
+  Mean_Beta_2_MLR = mean(part2_estimations$Beta_2),
+  Mean_Unadjusted_Model_1_X1_Coef = mean(part2_estimations$Unadjusted_Model_1_X1),
+  Mean_Unadjusted_Model_2_X2_Coef = mean(part2_estimations$Unadjusted_Model_2_X2),
+  Covariance = mean(part2_estimations$Covariance_Beta1_Beta2),
+  Correlation = mean(part2_estimations$Correlation))
+
+mean_estimations
+```
+### Compare the average values of beta j for j = 1, 2 from the MLR to the true values. (True values are 1 for beta1 and -0.25 for beta2)
+
+```{r}
+# compare average beta1 estimate to true value
+1 - mean_estimations$Mean_Beta_1_MLR
+-0.25 - mean_estimations$Mean_Beta_2_MLR
+```
+
+The average value for $\hat{\beta_1}$ from the MLR model is 1.01, which is very close to the true value of 1. The average value for $\hat{\beta_2}$ from the MLR model is -0.241, which is very close to the true value of -0.25. Above, I calculated the differences between the true values and the average values obtained from the MLR model to show that the differences are very small. 
+
+### What bias do we have in estimating the relationship between Y and X1 if we ignore the confounding variable X2, i.e. compute the difference in the true value of beta1 with the average value of the unadjusted coefficient from the SLR of Y on X1. Summarize your findings in a few sentences.  
+
+```{r}
+# compare average beta1 estimate (coefficient for X1) from unadjusted model to true value
+1 - mean_estimations$Mean_Unadjusted_Model_1_X1_Coef
+```
+
+Here, the average value for the coefficient on X1 for the unadjusted model when we ignore the confounding variable X2 is $\hat{\beta_1} = 0.964$. The difference between the true value of 1 and that estimate is 0.0357, which is much greater than the difference between the true value and the estimate of $\beta_1$ obtained from the MLR model. This suggests that we are underestimating the true value of $\hat{\beta_1}$ when we ignore the confounding variable X2.  
+
+### c. Now consider the case where X1 and X2 are independent, i.e. X2 is not a confounding variable.  
+
+```{r}
+my.sim.part2c = function(n = 100){
+  ## Generate X1 
+  X1 = rexp(n, rate = 5)
+  ## Generate X2
+  X2 = rnorm(n,mean=0,sd=0.2)
+  ## Generate Y - using residuals that follow a normal distribution
+  y = 1.5 + 1 * X1 - 0.25 * X2 + rnorm(n)
+  ##
+  ## After the above commands, you have simulated
+  ## the sample of size n with data (y, X1, X2)
+  ##
+  ## Fit the MLR
+  fit = lm(y~X1 + X2)
+  ## Return covariance for beta 1 and beta 2
+  covar = vcov(fit)[2,3]
+  ## Return correlation for beta 1 and beta 2
+  corr = vcov(fit)[2,3]/sqrt(vcov(fit)[2,2])/ sqrt(vcov(fit)[3,3])
+  ## Fit unadjusted model with X1 predictor
+  model1_unadj <- lm(y~X1)
+  ## Fit unadjusted model with X2 predictor
+  model2_unadj <- lm(y~X2)
+  return(data.frame(Beta_1 = summary(fit)$coefficients[2], 
+              Beta_2 = summary(fit)$coefficients[3], 
+              Covariance_Beta1_Beta2 = covar,
+              Correlation = corr,
+              Unadjusted_Model_1_Intercept = summary(model1_unadj)$coefficients[1],
+              Unadjusted_Model_1_X1_Coef = summary(model1_unadj)$coefficients[2],
+              Unadjusted_Model_2_Intercept = summary(model2_unadj)$coefficients[1],
+              Unadjusted_Model_2_X2_Coef = summary(model2_unadj)$coefficients[2]))
+}
+```
+
+### d. For n = 100, run your R function at least 1,000 times.  
+
+```{r}
+set.seed(12345)
+K = 1000
+part2c_estimations = NULL
+for(i in 1:K) part2c_estimations = rbind(part2c_estimations, my.sim.part2c(n = 100))
+
+mean_estimations_2c = data.frame(
+  Mean_Beta_1_MLR = mean(part2c_estimations$Beta_1),
+  Mean_Beta_2_MLR = mean(part2c_estimations$Beta_2),
+  Mean_Unadjusted_Model_1_X1_Coef = mean(part2c_estimations$Unadjusted_Model_1_X1),
+  Mean_Unadjusted_Model_2_X2_Coef = mean(part2c_estimations$Unadjusted_Model_2_X2),
+  Covariance_Beta1_Beta2 = mean(part2c_estimations$Covariance_Beta1_Beta2),
+  Correlation = mean(part2c_estimations$Correlation)
+  )
+
+mean_estimations_2c
+```
+
+The average estimates for $\hat{\beta_1}$ from the MLR model and the coefficient for X1 from the unadjusted model are both 1.01, which are very close to the true value of 1. The average estimates for $\hat{\beta_2}$ from the MLR model and the coefficient for X2 from the unadjusted model are -0.241 and -0.242, respectively, so they are very close to each other and are very close to the true value of -0.25. The average covariance and correlation between $\hat{\beta_1}$ and $\hat{\beta_2}$ are 0.000507 and 0.000856, respectively, which are both very close to 0, supporting the fact that X1 and X2 are uncorrelated. This analysis demonstrates that when adding an additional predictor to the model that is uncorrelated with the existing predictor, the estimates for the coefficients are very similar for both the simple linear regression case and the multiple linear regression case.  
+
+\newpage  
+
+## III. Analysis of Variance  
+
+### c. Using data from the NMES, perform an analysis comparing the mean total expenditures for 65 year old ever vs. never smokers using three methods: two-sample t-test, analysis of variance and a simple linear regression model.  
+
+### i. Create the sample of 65 year old ever and never smokers from the NMES. HINT: The eversmk variable in the dataset is a factor with levels 0 (never smoker), 1(ever smoker) and . (missing). You will need to create a subset where lastage = 65 and eversmk = 0 or 1. Call this data: d  
+
+```{r}
+load("nmes.rdata")
+d <- nmes %>% 
+  filter(lastage == 65 & eversmk %in% c(0,1))
+head(d, 5)
+```
+
+### ii. Create a numeric variable “ever” which is 1 (ever smoker) or 0 (never smoker).  
+
+```{r}
+d <- d %>% 
+  mutate(ever = case_when(
+    eversmk == "1" ~ 1,
+    eversmk == "0" ~ 0
+  ))
+head(d, 5)
+```
+
+### iii. Conduct the two-sample t-test, analysis of variance and simple linear regression:  
+
+```{r}
+# two-sample t-test
+t.test(totalexp~ever,data=d,var.equal=TRUE)
+# analysis of variance
+summary(aov(totalexp~ever,data=d))
+# simple linear regression
+summary(lm(totalexp~ever,data=d))
+```
+
+### iv. Compute the square root of the “mean squared error” from the analysis of variance table and compare this to the “residual standard error” output from the lm function. Are these the same or different?  
+
+```{r}
+anova_table <- summary(aov(totalexp~ever,data=d))
+
+# Square Roote of Mean Squared Error from ANOVA Table
+sqrt(anova_table[[1]]$`Mean Sq`[2])
+
+# Residual Standard Error from lm function
+slr <- summary(lm(totalexp~ever,data=d))
+slr$sigma
+?lm
+
+```
+
+Both the square root of the mean squared error from the analysis of variance table and the residual standard error from the lm function are 9326, so they are the same.  
+
+### v. Compare the (t-statistic)^2 and F-statistics with corresponding pvalues. Are these the same or different?  
+
+```{r}
+# t-statistic squared
+t_test <- t.test(totalexp~ever,data=d,var.equal=TRUE)
+(t_test$statistic)^2
+# t-statistic p-value
+t_test$p.value
+
+# F-statistic
+anova_table[[1]]$`F value`[1]
+# F-statistic p-value
+anova_table[[1]]$`Pr(>F)`[1]
+```
+The t-statistic squared and the F-statistic are both 4.38 and their corresponding p-values are both 0.0371, so they are the same.  
+
+### 2. Extend the ideas above to compare the mean total expenditures for 65 year old current, former and never smokers using two methods: analysis of variance and linear regression model.  
+
+### a. Using the sample from part 1c, create a new variable X that is 0 = never smoker, 1 = former smoker, 2 = current smoker and remove individuals with missing current/former smoker information.
+
+```{r}
+d$X = ifelse(d$current=="1",2,
+ifelse(d$former=="1",1,
+ifelse(d$current=="." & d$former==".",NA,0)))
+d = d[!is.na(d$X),]
+head(d)
+```
+
+### b. Fit the analysis of variance and linear regression model:
+
+```{r}
+ summary(aov(totalexp~as.factor(X),data=d))
+ summary(lm(totalexp~as.factor(X),data=d))
+```
+
+### c. The linear regression model has an intercept and two slopes. Write out the definitions of the betas with respect to the group means. Show the null hypotheses.  
+
+$\hat{\beta_0}$ = $\mu_{never}$ i.e. the average medical expenditures for the never smokers.  
+$\hat{\beta_1}$ = $\mu_{former} - \mu_{never}$  i.e. the average medical expenditures for the former smokers minus the average medical expenditures for the never smokers, or the difference in average medical expenditures between the former smokers and never smokers.    
+$\hat{\beta_2}$ = $\mu_{current} - \mu_{never}$ i.e. the average medical expenditures for the current smokers minus the average medical expenditures for the never smokers, or the difference in average medical expenditures between the current smokers and never smokers. 
+
+The null hypotheses $H_0: \mu_{never} = \mu_{current} = \mu_{former}$ is equivalent to $H_0 = \beta_1 = 0$ and $\beta_2 = 0$ because if we let $\mu = \mu_{never} = \mu_{current} = \mu_{former}$ then we have $\hat{\beta_1} = \mu - \mu$ and $\hat{\beta_2} = \mu - \mu$ which are both 0, so we would have $\beta_1 = 0$ and $\beta_2 = 0$.     
+
+### d. Using the F-tests, what do you conclude regarding differences in the mean total expenditures for 65 year old current, former and never smokers?  
+
+```{r}
+summary(aov(totalexp~as.factor(X),data=d))
+```
+From the F-test, the p-value is 0.097, so we fail to reject the null hypothesis that $H_0 = \beta_1 = 0$ and $\beta_2 = 0$. This means we do not have sufficient evidence to conclude that there are differences in the mean total medical expenditures for 65 year old current, former and never smokers.  
+
+## IV. Advanced Inferences for Linear Regression  
+
+### 1. Create dataset from NMES  
+
+```{r}
+d4 <- nmes %>% 
+  filter(lastage >= 65) %>% 
+  # remove missing value for eversmk
+  filter(!eversmk == ".") %>% 
+  mutate(agem65 = lastage - 65) %>% 
+  mutate(age_sp1 = ifelse(lastage - 75 > 0, lastage - 75,0)) %>% 
+  mutate(age_sp2 = ifelse(lastage - 85 > 0, lastage - 85,0)) %>% 
+  mutate(ever = case_when(
+    eversmk == "1" ~ 1,
+    eversmk == "0" ~ 0
+  ))
+```
+
+Fit a MLR of expenditures on age and smoking status:  
+
+```{r}
+mlr <- lm(totalexp ~ (agem65 + age_sp1 + age_sp2) + ever +
+ever*(agem65 + age_sp1 + age_sp2), data = d4)
+summary(mlr)
+confint(mlr)
+```
+
+### Write a short, scientific interpretation for agem65, age_sp1, ever, ever:agem65 and ever:age_sp1; use the estimated coefficient with corresponding confidence interval.  
+
+agem65 (161.7): For never smokers between the ages of 65 and 75 years, the difference in average medical expenditures comparing two never smokers who differ in age by 1 year is $161.7 (95% CI: 17.9, 305.6).  
+
+age_sp1 (-102.2): For never smokers between the ages of 75 and 85 years, the difference in average medical expenditures comparing two never smokers who differ in age by 1 year is $102.2 less than the difference per year of \$161.7 estimated for 65-75 year old never smokers. The 95% confidence interval for this estimate is (-378.5, 174.1).  
+
+ever (1513.5): The average medical expenditures for ever smokers are $1513.5 more than the average medical expenditures for never smokers at any age (95% CI: 289.2, 2737.9).
+
+ever:agem65 (-140.6): For ever smokers between the ages of 65 and 75 years, the difference in average medical expenditures comparing two ever smokers who differ in age by 1 year is $140.6 less than the difference in average medical expenditures comparing two never smokers between the ages of 65-75 who differ in age by 1 year (\$161.7). The 95% confidence interval for this estimate is (-336.9, 55.6).  
+
+****
+While the average medical expenditures for ever smokers are $1513.5 more than the average medical expenditures for never smokers at any age, the additional change in difference in average medical expenditures comparing ever smokers who differ in age by 1 year is \$140.6 less than that overall difference of \$1513.5. We can calculate that difference: \$1513.5 - \$140.6 = \$1372.9 and interpret as follows: For ever smokers between the ages of 65 and 75 years, the difference in average medical expenditures comparing two never smokers who differ in age by 1 year is \$1372.9 more than the difference per year of \$161.7 estimated for 65-75 year old never smokers.
+****
+
+ever:age_sp1 (261.7): For ever smokers between the ages of 75 and 85 years, the difference in average medical expenditures comparing two ever smokers who differ in age by 1 year is $261.7 more than the difference in average medical expenditures comparing two never smokers between the ages of 75-85 who differ in age by 1 year. The 95% confidence interval for this estimate is (-143.0, 666.3).  
+
+### 2. Create a figure that displays the data and the predicted values from the fit of the MLR model from Question1 1.  
+
+```{r}
+ggplot(aes(x = lastage, y = totalexp), data = d4) +
+  geom_jitter(size = 1) + 
+  # add line for mlr fitted values for ever = 1
+  
+  geom_line(aes(x = lastage, y = mlr$fitted.values,color= as.factor(ever)), size = 1) +
+  geom_point(aes(x = lastage, y = mlr$fitted.values, color= as.factor(ever)), 
+            size = 1) +
+  xlab("Age") + 
+  ylab("Total Medical Expenditures in 1987 ($)") + 
+  ggtitle(str_wrap("Age vs. Total Medical Expenditures in 1987 with Fitted Values from Multiple Linear Regression Model", width = 70)) + 
+  scale_color_manual(breaks = c(0, 1),
+                     values = c("orange", "purple1"), 
+                     labels = c("Never Smoker","Ever Smoker")) +
+  # legend title
+  labs(color = "Smoking Status")
+```
+
+### 3. Using the model fit in Question 1, make a plot of the difference in mean expenditures between ever and never smokers as a function of age. Add a horizontal line at 0. Note that this difference is a simple function of the estimated coefficients from the model. (Hint: Start by writing out the regression model for ever and never smokers, both will be a function of age and the regression coefficients. Then take the difference and plug in the estimated regression coefficients and allow age to range from 65 to 94.)  
+
+```{r}
+# create function
+mean_difference <- function(age) {
+  mean_diff = mlr$coefficients[5] + mlr$coefficients[6]*(age - 65) + 
+    mlr$coefficients[7]*ifelse(age - 75 > 0, age - 75,0) + mlr$coefficients[8]*ifelse(age - 85 > 0, age - 85,0)
+  return(mean_diff)
+}
+
+input_ages <- seq(65, 94, by = 1)
+diff <- mean_difference(input_ages)
+plot_data <- data.frame(x = input_ages, y = diff)
+
+ggplot(plot_data, aes(x = x, y = y)) + 
+  geom_line() + 
+  geom_point() + 
+  labs(title = "Plot of my_function", x = "x", y = "y") +
+  geom_hline(yintercept = 0, color = "red") + 
+  xlab("Age") + 
+  ylab("Difference in Medical Expenditures Between Ever and Never Smokers") + 
+  ggtitle(str_wrap("Difference in Mean Expenditures Between Ever and Never Smokers as a Function of Age for 65-94 year-olds", width = 70)) + 
+  theme(axis.title.y = element_text(size = 10))
+```
+
+Comment on why you think the average expenditures for ever smokers are less
+than the average expenditures for never smokers among persons over 85 years of
+age.  
+
+### 4. Use the appropriate linear combination of regression coefficients to calculate the estimated difference between ever and never smokers in average expenditures and its standard error at ages 65, 75, and 90 years. Complete the table below.  
+
+```{r}
+# Age 65
+diff_65 <- mean_difference(65)
+st_error_65 <- sqrt(vcov(mlr)[5,5])
+ci_65_lower <- diff_65 - st_error_65*qt(0.975, df = 4720)
+ci_65_upper <- diff_65 + st_error_65*qt(0.975, df = 4720)
+  
+# Age 75
+diff_75 <- mean_difference(75)
+st_error_75 <- sqrt(vcov(mlr)[5,5] + 100*vcov(mlr)[6,6] + 20*vcov(mlr)[6,5])
+ci_75_lower <- diff_75 - st_error_75*qt(0.975, df = 4720)
+ci_75_upper <- diff_75 + st_error_75*qt(0.975, df = 4720)
+
+# Age 90
+diff_90 <- mean_difference(90)
+A <- matrix(c(0, 0, 0, 0, 1, 25, 15, 5), nrow = 1)
+st_error_90 <- sqrt(A %*% vcov(mlr) %*% t(A))[1]
+ci_90_lower <- diff_90 - st_error_90*qt(0.975, df = 4720)
+ci_90_upper <- diff_90 + st_error_90*qt(0.975, df = 4720)
+
+# Combine into table
+question_4 <- data.frame(Age = c("65", "75", "90"),
+                         Estimated_diff_in_exp_ever_vs_never = c(diff_65, diff_75, diff_90),
+                         Linear_Model_SE = c(st_error_65, st_error_75, st_error_90),
+                         CI_Lower = c(ci_65_lower, ci_75_lower, ci_90_lower),
+                         CI_Upper = c(ci_65_upper, ci_75_upper, ci_90_upper)
+)
+question_4
+
+# Confirm with lincom function
+
+rbind(lincom(mlr, c("ever") ,eform=FALSE)[,1:3], lincom(mlr, c("ever + 10*agem65:ever") ,eform=FALSE)[,1:3], lincom(mlr, c("ever + 25*agem65:ever + 15*age_sp1:ever + 5*age_sp2:ever") ,eform=FALSE)[,1:3])
+
+390000^(1/2)
+```
+
+### 5. Now estimate the ratio of the average expenditures comparing ever to never smokers at age 65. This is a non-linear function of the regression coefficients from step 1. Use the delta method to estimate the standard error of this statistic and make a 95% confidence interval for the true value given the model.  
+
+```{r}
+reg.coeff = mlr$coeff
+reg.vc = vcov(mlr)
+# Compute the estimate of g(beta)
+g.est = 1 + reg.coeff[5]/reg.coeff[1]
+# Define the vector of the derivative of g(beta) wrt beta
+g.prime = matrix(c(-reg.coeff[5]/(reg.coeff[1]^2), 0, 0, 0, 1/reg.coeff[1], 0, 0, 0),nrow=8,ncol=1)
+#g.prime
+
+g.var = t(g.prime) %*% reg.vc %*% g.prime
+estimate = (1 + reg.coeff[5]/reg.coeff[1]) 
+CI = estimate + c(-1,1)*sqrt(g.var)[1]*qt(0.975,df=summary(mlr)$df[2])
+question_5 <- data.frame(Estimate = estimate, SE = sqrt(g.var), CI_Lower = CI[1], CI_Upper = CI[2])
+question_5
+```
+The estimate for the ratio of the average expenditures comparing ever to never smokers at age 65 is 1.62 with a standard error of 0.353. The 95% confidence interval for this estimate is (0.926, 2.31).
+
+### 6. Bootstrap  
+
+```{r}
+# Create the function
+boot_function <- function(data, index) {
+  resample <- data[index,]
+  boot_coef <- coef(lm(totalexp ~ (agem65 + age_sp1 + age_sp2) + ever +
+ever*(agem65 + age_sp1 + age_sp2), data = resample))
+  # (a): beta_4 (ever)
+  # (b): beta_4 + 10beta_5 (ever + 10*agem65:ever)
+  # (c): beta_4 + 25beta_5 + 15beta_6 + 5beta_7 (ever + 25*agem65:ever + 15*age_sp1:ever + 5*age_sp2:ever)
+  # (d): ratio: 1 + beta_4/beta_0 (1 + ever/Intercept)
+  return(c(boot_coef[5], 
+           boot_coef[5] + 10*boot_coef[6], 
+           boot_coef[5] + 25*boot_coef[6] + 15*boot_coef[7] + 5*boot_coef[8], 
+           1 + (boot_coef[5]/boot_coef[1])))
+}
+
+# Set seed
+set.seed(12345)
+
+# Run boot function and store boot object
+# 1,000 replicates
+
+#boot_result <- boot(data = d4, boot_function, R = 1000)
+#save(boot_result, file = "ProblemSet2BootResult.rda")
+
+load("ProblemSet2BootResult.rda")
+
+# Retrieve bootstrapped point estimates
+boot_point_est <- as.vector(boot_result$t0)
+# Retrieve bootstrapped standard error
+boot_se <- summary(boot_result)$bootSE
+# Retrieve bootstrapped 95% CI
+ci_boot <- sapply(1:4, function(x) boot.ci(boot_result, index = x, type = "perc")$perc[4:5])
+
+# Store everything in a table
+bootstrapping_table <- data.frame(t(rbind(t(boot_point_est), t(boot_se), ci_boot)))
+colnames(bootstrapping_table) <- c("Bootstrap Point Estimate", "Bootstrap Standard Error", "Bootstrap CI Lower", "Bootstrap CI Upper")
+rownames(bootstrapping_table) <- c("Age 65", "Age 75", "Age 90", "Ratio")
+bootstrapping_table
+```
+
+Now, add the bootstrapping estimates to the table from question 4:  
+
+```{r}
+combined <- cbind(c(question_4), bootstrapping_table[1:3,1:4])
+rownames(combined) <- NULL
+colnames(combined)[6:9] <- c("Bootstrap Estimate", "Bootstrap Standard Error", "Bootstrap CI Lower", "Bootstrap CI Upper")
+combined
+```
+
+As expected, the point estimates obtained in question 4 are similar to those I obtained from the bootstrap. The standard errors are relatively similar for ages 65 and 75, with the linear model standard errors of 624 and 587 for age 65 and 75, respectively, and the bootstrap standard errors of 575 and 609 for age 65 and 75, respectively. Additionally, the standard error for the ratio at age 65 obtained using bootstrapping is 0.303, which is relatively close to the standard error of 0.353 obtained from the model. However, the biggest difference lies in the age 90 estimate, with the bootstrap standard error of 2300 compared to the linear model standard error of 1673. The 95% confidence interval for the difference in expenditures for ever vs. never smokers obtained from the model is (-6179, 381) while the 95% confidence interval obtained from the bootstrap is (-7044, 1694) which is very different. This suggests that the estimates obtained from the model are biased because the data is skewed and heteroscedastic.  
+
+### 7. Hypothesis Tests  
+
+Null Model: totalexp = $\beta_0$ + $\beta_1$agem65 + $\beta_2$age_sp1 + 
+$\beta_3$age_sp2  
+Extended Model: totalexp = $\beta_0$ + $\beta_1$agem65 + $\beta_2$age_sp1 + 
+$\beta_3$age_sp2 + $\beta_4$ever + $\beta_5$ever:agem65 + $\beta_6$ever:age_sp1 
++ $\beta_7$ever:age_sp2  
+
+Null Hypothesis: $\beta_4$ = $\beta_5$ = $\beta_6$ = $\beta_7$ = 0  
+Alternative Hypothesis: At least one of $\beta_4$, $\beta_5$, $\beta_6$, $\beta_7$ is not equal to 0  
+
+```{r}
+reg1 = lm(totalexp ~ agem65 + age_sp1 + age_sp2 ,data=d4)
+reg2 = mlr
+
+# Likelihood ratio test
+lr.test.stat = as.numeric(2 * logLik(reg2) - 2 * logLik(reg1))
+pchisq(lr.test.stat,df=4,lower.tail=FALSE)
+
+# F test
+anova(reg1, reg2)
+```
+
+The p-value for both the likelihood ratio test and the F-test is 0.015, so we reject the null hypothesis that $\beta_4$ = $\beta_5$ = $\beta_6$ = $\beta_7$ = 0 and favor the alternative hypothesis that at least one of $\beta_4$, $\beta_5$, $\beta_6$, $\beta_7$ is not equal to 0. This evidence suggests ever and never smokers do not use the same quantity of medical services at any age, but these tests do not tell us at which specific age the expenditures may differ. The tests are similar in that they produced the same conclusion, but they differ in that the likelihood test is a test based on comparing the maximum likelihood of the two models given the data and the F-test formally tests the null hypothesis that the coefficients are equal to 0. 
+
+OTHER OPTION
+```{r}
+reg1 = lm(totalexp~lastage,data=d4)
+reg2 = lm(totalexp~ lastage + ever,data=d4)
+
+# Likelihood ratio test
+lr.test.stat = as.numeric(2 * logLik(reg2) - 2 * logLik(reg1))
+pchisq(lr.test.stat,df=1,lower.tail=FALSE)
+
+# F-test
+anova(reg1, reg2)
+```
+
